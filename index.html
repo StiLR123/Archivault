@@ -3,118 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrickHeads Sensor Dashboard</title>
+    <title>BrickHeads Universal Sensor</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #1a1a1a; color: white; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: #2d2d2d; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h1 { color: #00ffcc; margin-bottom: 5px; }
-        p { color: #aaa; margin-bottom: 25px; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+        h1 { color: #22d3ee; margin-bottom: 5px; letter-spacing: 1px; }
+        #status { margin: 20px 0; padding: 12px; border-radius: 12px; background: #334155; color: #facc15; font-weight: bold; }
         
         button { 
-            padding: 15px 40px; font-size: 1.1em; font-weight: bold; cursor: pointer;
-            background-color: #00ffcc; color: #1a1a1a; border: none; border-radius: 50px;
-            transition: transform 0.2s, background 0.2s;
+            padding: 16px 40px; font-size: 1.2em; font-weight: 800; cursor: pointer;
+            background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+            color: #0f172a; border: none; border-radius: 50px;
+            box-shadow: 0 10px 20px rgba(6, 182, 212, 0.3);
+            transition: all 0.2s;
         }
-        button:hover { background-color: #00d4aa; transform: scale(1.05); }
-        button:disabled { background-color: #555; cursor: not-allowed; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 15px 25px rgba(6, 182, 212, 0.4); }
+        button:active { transform: translateY(0); }
 
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 30px; }
-        .data-card { background: #3d3d3d; padding: 15px; border-radius: 10px; border-bottom: 4px solid #00ffcc; }
-        .label { display: block; font-size: 0.8em; color: #888; text-transform: uppercase; }
-        .value { font-size: 1.8em; font-weight: bold; font-family: monospace; }
-        
-        #status { margin-top: 20px; font-size: 0.9em; color: #ffcc00; }
+        .sensor-card { display: none; margin-top: 20px; background: #0f172a; padding: 20px; border-radius: 16px; border-left: 6px solid #22d3ee; text-align: left; }
+        .val { font-family: 'Courier New', monospace; font-size: 1.6em; color: #22d3ee; float: right; font-weight: bold; }
+        .label { color: #94a3b8; text-transform: uppercase; font-size: 0.85em; font-weight: bold; }
+        .axis-row { border-bottom: 1px solid #334155; padding: 10px 0; }
+        .axis-row:last-child { border: none; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>BrickHeads Lab</h1>
-        <p>Micro:bit Accelerometer Live Feed</p>
+        <p>Micro:bit Real-Time Monitoring</p>
         
-        <button id="connectBtn">CONNECT MICRO:BIT</button>
-        
-        <div id="status">Status: Waiting for user...</div>
+        <button id="connectBtn">SELECT DEVICE</button>
+        <div id="status">Tap the button to find your robot.</div>
 
-        <div class="data-grid">
-            <div class="data-card">
-                <span class="label">X-Axis</span>
-                <div id="xVal" class="value">0.00</div>
-            </div>
-            <div class="data-card">
-                <span class="label">Y-Axis</span>
-                <div id="yVal" class="value">0.00</div>
-            </div>
-            <div class="data-card">
-                <div class="label">Z-Axis</div>
-                <div id="zVal" class="value">0.00</div>
-            </div>
+        <div id="accelCard" class="sensor-card">
+            <div class="label" style="margin-bottom: 10px; color: #22d3ee;">Accelerometer (G-Force)</div>
+            <div class="axis-row">X-Axis <span id="xVal" class="val">0.00</span></div>
+            <div class="axis-row">Y-Axis <span id="yVal" class="val">0.00</span></div>
+            <div class="axis-row">Z-Axis <span id="zVal" class="val">0.00</span></div>
+        </div>
+
+        <div id="tempCard" class="sensor-card">
+            <span class="label">Ambient Temp</span>
+            <span id="tempVal" class="val">--°C</span>
         </div>
     </div>
 
     <script>
-        // Standard Micro:bit Bluetooth UUIDs
-        const ACCEL_SERVICE = 'e95d0753-251d-470a-a062-fa1922dfa9a8';
-        const ACCEL_DATA = 'e95dca53-251d-470a-a062-fa1922dfa9a8';
+        // Official Micro:bit Bluetooth UUIDs
+        const UUIDS = {
+            ACCEL_SERVICE: 'e95d0753-251d-470a-a062-fa1922dfa9a8',
+            ACCEL_DATA:    'e95dca4b-251d-470a-a062-fa1922dfa9a8',
+            TEMP_SERVICE:  'e95d9250-251d-470a-a062-fa1922dfa9a8',
+            TEMP_DATA:     'e95d9251-251d-470a-a062-fa1922dfa9a8'
+        };
 
         const connectBtn = document.getElementById('connectBtn');
         const statusText = document.getElementById('status');
 
         connectBtn.addEventListener('click', async () => {
             try {
-                // 1. Search for the micro:bit
-                statusText.innerText = "Status: Searching for micro:bit...";
+                // 1. OPEN POPUP: Filter for micro:bit and request access to services
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
-                    optionalServices: [ACCEL_SERVICE]
+                    optionalServices: [UUIDS.ACCEL_SERVICE, UUIDS.TEMP_SERVICE]
                 });
 
-                // 2. Connect to the device
-                statusText.innerText = "Status: Connecting to GATT Server...";
+                statusText.innerText = "Connecting to " + device.name + "...";
                 const server = await device.gatt.connect();
 
-                // 3. Get the Accelerometer Service
-                statusText.innerText = "Status: Getting Service...";
-                const service = await server.getPrimaryService(ACCEL_SERVICE);
+                // 2. AUTO-DETECT: Ask the device what it is broadcasting
+                const services = await server.getPrimaryServices();
+                
+                for (const service of services) {
+                    if (service.uuid === UUIDS.ACCEL_SERVICE) {
+                        setupAccelerometer(service);
+                    } else if (service.uuid === UUIDS.TEMP_SERVICE) {
+                        setupTemperature(service);
+                    }
+                }
 
-                // 4. Get the Data Characteristic
-                statusText.innerText = "Status: Getting Characteristic...";
-                const characteristic = await service.getCharacteristic(ACCEL_DATA);
-
-                // 5. Start receiving data
-                await characteristic.startNotifications();
-                statusText.innerText = "Status: Receiving Live Data!";
-                statusText.style.color = "#00ffcc";
-                connectBtn.disabled = true;
-
-                // 6. Translate the binary buffer
-                characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                    let view = event.target.value;
-
-                    // Micro:bit sends 2-byte integers (Little Endian)
-                    // We divide by 1000 to convert milli-g to standard G-force
-                    let x = (view.getInt16(0, true) / 1000).toFixed(2);
-                    let y = (view.getInt16(2, true) / 1000).toFixed(2);
-                    let z = (view.getInt16(4, true) / 1000).toFixed(2);
-
-                    document.getElementById('xVal').innerText = x;
-                    document.getElementById('yVal').innerText = y;
-                    document.getElementById('zVal').innerText = z;
-                });
-
-                // Handle disconnection
-                device.addEventListener('gattserverdisconnected', () => {
-                    statusText.innerText = "Status: Disconnected. Please refresh.";
-                    statusText.style.color = "#ff4444";
-                    connectBtn.disabled = false;
-                });
+                statusText.innerText = "Connected! Monitoring active sensors.";
+                statusText.style.color = "#22d3ee";
+                connectBtn.style.display = "none";
 
             } catch (error) {
-                console.error(error);
-                statusText.innerText = "Error: " + error.message;
-                statusText.style.color = "#ff4444";
+                statusText.innerText = "Connection Failed: " + error.message;
+                statusText.style.color = "#fb7185";
             }
         });
+
+        async function setupAccelerometer(service) {
+            document.getElementById('accelCard').style.display = 'block';
+            const characteristic = await service.getCharacteristic(UUIDS.ACCEL_DATA);
+            await characteristic.startNotifications();
+            characteristic.addEventListener('characteristicvaluechanged', (e) => {
+                let view = e.target.value;
+                // Convert raw milli-g to standard G (divide by 1000)
+                document.getElementById('xVal').innerText = (view.getInt16(0, true) / 1000).toFixed(2);
+                document.getElementById('yVal').innerText = (view.getInt16(2, true) / 1000).toFixed(2);
+                document.getElementById('zVal').innerText = (view.getInt16(4, true) / 1000).toFixed(2);
+            });
+        }
+
+        async function setupTemperature(service) {
+            document.getElementById('tempCard').style.display = 'block';
+            const characteristic = await service.getCharacteristic(UUIDS.TEMP_DATA);
+            await characteristic.startNotifications();
+            characteristic.addEventListener('characteristicvaluechanged', (e) => {
+                let temp = e.target.value.getInt8(0);
+                document.getElementById('tempVal').innerText = temp + "°C";
+            });
+        }
     </script>
 </body>
 </html>
