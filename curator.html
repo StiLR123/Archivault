@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Archivault curator Dashboard</title>
+    <title>Curator Dashboard - Archivault</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -9,31 +9,23 @@
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
         .header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px; border-radius: 15px; border-bottom: 3px solid #22d3ee; }
-        .controls { margin-top: 15px; background: #334155; padding: 10px; border-radius: 10px; display: flex; gap: 10px; align-items: center; }
-        .chart-area { background: #1e293b; border-radius: 15px; margin-top: 20px; padding: 20px; height: 55vh; }
-        select { padding: 8px; border-radius: 5px; background: #1e293b; color: white; border: 1px solid #22d3ee; }
-        button { padding: 8px 15px; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; }
-        .btn-zoom { background: #22d3ee; color: #0f172a; }
-        .btn-reset { background: #475569; color: white; }
+        .settings-bar { background: #334155; padding: 15px; border-radius: 12px; margin: 15px 0; display: flex; align-items: center; gap: 20px; }
+        .chart-area { background: #1e293b; border-radius: 15px; padding: 20px; height: 50vh; }
+        input[type=range] { width: 200px; }
+        .safety-val { font-size: 1.2em; color: #facc15; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2 style="margin:0">Archivault Curator Monitor</h2>
-        <div>Peak: <span id="cG" style="color:#22d3ee; font-size:1.2em;">0.00</span>G</div>
+        <h2 style="margin:0">Curator Monitor</h2>
+        <select id="tripPicker" style="padding:8px; border-radius:5px;"><option>-- Choose Trip --</option></select>
     </div>
 
-    <div class="controls">
-        <label>Select Trip:</label>
-        <select id="tripPicker">
-            <option value="">-- Choose a Trip --</option>
-        </select>
-        
-        <div style="margin-left:auto; display:flex; gap:5px;">
-            <button class="btn-zoom" onclick="chart.zoom(1.2)">Zoom In (+)</button>
-            <button class="btn-zoom" onclick="chart.zoom(0.8)">Zoom Out (-)</button>
-            <button class="btn-reset" onclick="chart.resetZoom()">Reset View</button>
-        </div>
+    <div class="settings-bar">
+        <strong>Remote Safety Limit:</strong>
+        <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5">
+        <span class="safety-val"><span id="limitDisp">1.50</span> G</span>
+        <small>(This updates the driver's alarm in real-time)</small>
     </div>
 
     <div class="chart-area">
@@ -50,49 +42,40 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // 1. UPDATE SAFETY LIMIT
+        const slider = document.getElementById('safetySlider');
+        const disp = document.getElementById('limitDisp');
+        
+        slider.oninput = function() {
+            let val = parseFloat(this.value).toFixed(2);
+            disp.innerText = val;
+            db.ref('safety_settings/max_g').set(val); // Write to Firebase
+        };
+
+        // 2. CHART & DATA LOGIC (Same as before)
         const ctx = document.getElementById('tripChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', fill: true, backgroundColor: 'rgba(34,211,238,0.1)', stepped: true }] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } } }
-            }
+            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', fill: true, stepped: true }] },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // 1. POPULATE THE PULL-DOWN MENU
-        db.ref('trips').on('value', (snapshot) => {
+        db.ref('trips').on('value', (snap) => {
             const picker = document.getElementById('tripPicker');
-            const currentSelection = picker.value;
-            picker.innerHTML = '<option value="">-- Choose a Trip --</option>';
-            
-            snapshot.forEach((child) => {
-                const opt = document.createElement('option');
-                opt.value = child.key;
-                opt.innerText = child.key;
+            picker.innerHTML = '<option value="">-- Choose Trip --</option>';
+            snap.forEach(child => {
+                let opt = document.createElement('option');
+                opt.value = child.key; opt.innerText = child.key;
                 picker.appendChild(opt);
             });
-            picker.value = currentSelection;
         });
 
-        // 2. SWITCH TRIPS WHEN SELECTED
-        let currentListener = null;
         document.getElementById('tripPicker').onchange = function() {
-            const tripID = this.value;
-            if (!tripID) return;
-
-            // Clear old data and listener
-            if (currentListener) db.ref('trips').child(currentListener).off();
-            chart.data.labels = [];
-            chart.data.datasets[0].data = [];
-            currentListener = tripID;
-
-            // Start new listener for the selected trip
-            db.ref('trips/' + tripID).on('child_added', (snap) => {
+            chart.data.labels = []; chart.data.datasets[0].data = [];
+            db.ref('trips/' + this.value).on('child_added', (snap) => {
                 const val = snap.val();
                 chart.data.labels.push(new Date(val.t).toLocaleTimeString());
                 chart.data.datasets[0].data.push(val.g);
-                document.getElementById('cG').innerText = val.g;
                 chart.update('none');
             });
         };
