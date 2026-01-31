@@ -9,17 +9,16 @@
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; margin: 0; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #1e293b; border-radius: 15px; }
-        .chart-area { background: #1e293b; border-radius: 15px; margin-top: 20px; padding: 20px; height: 70vh; }
+        .chart-area { background: #1e293b; border-radius: 15px; margin-top: 20px; padding: 20px; height: 60vh; }
         .stat-pill { background: #334155; padding: 10px 20px; border-radius: 50px; font-weight: bold; }
-        #warn { color: #fb7185; display: none; font-weight: bold; animation: blink 1s infinite; }
-        @keyframes blink { from {opacity: 1;} to {opacity: 0.2;} }
+        /* Debug Console Style */
+        #debug-log { background: #000; color: #0f0; font-family: monospace; height: 100px; overflow-y: scroll; padding: 10px; margin-top: 10px; font-size: 0.8em; border-radius: 10px; }
     </style>
 </head>
 <body>
     <div class="header">
         <h2>Archivault Curator Monitor</h2>
-        <div id="warn">⚠️ EXCESSIVE SHOCK DETECTED</div>
-        <div class="stat-pill">Current: <span id="cG" style="color:#22d3ee">0.00</span>G</div>
+        <div class="stat-pill">Current: <span id="cG" style="color:#22d3ee">---</span>G</div>
         <button onclick="chart.resetZoom()">Reset Zoom</button>
     </div>
 
@@ -27,37 +26,51 @@
         <canvas id="tripChart"></canvas>
     </div>
 
+    <div id="debug-log">System: Initializing Curator App...<br></div>
+
     <script>
+        function log(msg) {
+            const div = document.getElementById('debug-log');
+            div.innerHTML += "> " + msg + "<br>";
+            div.scrollTop = div.scrollHeight;
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyCLiWeNn7SVAs0VDpv8ST6xvplqGytnnIU",
             authDomain: "archivault-8d6ff.firebaseapp.com",
             databaseURL: "https://archivault-8d6ff-default-rtdb.firebaseio.com/",
             projectId: "archivault-8d6ff"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            var db = firebase.database();
+            log("Firebase Initialized.");
+        } catch (e) {
+            log("Firebase Error: " + e.message);
+        }
 
         const ctx = document.getElementById('tripChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { 
-                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-                    y: { min: 0, max: 5, grid: { color: '#334155' } }
-                },
-                plugins: {
-                    zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } }
-                }
+            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', fill: true, pointRadius: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0.5, max: 4 } } }
+        });
+
+        // REVISED LISTENER: Listen to the "trips" folder generally
+        log("Waiting for data from Firebase...");
+        
+        db.ref('trips').on('value', (snapshot) => {
+            if(!snapshot.exists()) {
+                log("No trips found in database yet. Is the Driver App sending?");
             }
         });
 
-        // Listen for the LATEST trip started
+        // Listen for the most recent trip
         db.ref('trips').limitToLast(1).on('child_added', (tripSnap) => {
-            console.log("Monitoring Trip:", tripSnap.key);
+            log("Connected to Trip: " + tripSnap.key);
             
+            // Listen for every new data point in this trip
             tripSnap.ref.on('child_added', (dataSnap) => {
                 const data = dataSnap.val();
                 const time = new Date(data.t).toLocaleTimeString();
@@ -65,13 +78,12 @@
                 chart.data.labels.push(time);
                 chart.data.datasets[0].data.push(data.g);
                 
-                // Show the curator the live value
-                document.getElementById('cG').innerText = data.g;
-                
-                // Alert curator if shock is high
-                if(data.g > 2.0) { document.getElementById('warn').style.display = "block"; }
-                else { document.getElementById('warn').style.display = "none"; }
+                if (chart.data.labels.length > 50) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
 
+                document.getElementById('cG').innerText = data.g;
                 chart.update('none');
             });
         });
