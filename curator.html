@@ -1,89 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Archivault Curator Dashboard</title>
+    <title>Curator Dashboard - Archivault</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; margin: 0; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #1e293b; border-radius: 15px; }
+        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px; border-radius: 15px; }
         .chart-area { background: #1e293b; border-radius: 15px; margin-top: 20px; padding: 20px; height: 60vh; }
-        .stat-pill { background: #334155; padding: 10px 20px; border-radius: 50px; font-weight: bold; }
-        /* Debug Console Style */
-        #debug-log { background: #000; color: #0f0; font-family: monospace; height: 100px; overflow-y: scroll; padding: 10px; margin-top: 10px; font-size: 0.8em; border-radius: 10px; }
+        .danger-btn { background: #7f1d1d; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; }
+        #activeTrip { color: #22d3ee; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2>Archivault Curator Monitor</h2>
-        <div class="stat-pill">Current: <span id="cG" style="color:#22d3ee">---</span>G</div>
-        <button onclick="chart.resetZoom()">Reset Zoom</button>
+        <div>
+            <h2 style="margin:0">Curator Monitor</h2>
+            <span>Active Trip: <span id="activeTrip">Waiting...</span></span>
+        </div>
+        <button class="danger-btn" onclick="clearAllData()">DELETE ALL TRIPS</button>
     </div>
 
     <div class="chart-area">
         <canvas id="tripChart"></canvas>
     </div>
 
-    <div id="debug-log">System: Initializing Curator App...<br></div>
-
     <script>
-        function log(msg) {
-            const div = document.getElementById('debug-log');
-            div.innerHTML += "> " + msg + "<br>";
-            div.scrollTop = div.scrollHeight;
-        }
-
         const firebaseConfig = {
             apiKey: "AIzaSyCLiWeNn7SVAs0VDpv8ST6xvplqGytnnIU",
             authDomain: "archivault-8d6ff.firebaseapp.com",
             databaseURL: "https://archivault-8d6ff-default-rtdb.firebaseio.com/",
             projectId: "archivault-8d6ff"
         };
-        
-        try {
-            firebase.initializeApp(firebaseConfig);
-            var db = firebase.database();
-            log("Firebase Initialized.");
-        } catch (e) {
-            log("Firebase Error: " + e.message);
-        }
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
         const ctx = document.getElementById('tripChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', fill: true, pointRadius: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0.5, max: 4 } } }
+            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', stepped: true }] },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // REVISED LISTENER: Listen to the "trips" folder generally
-        log("Waiting for data from Firebase...");
-        
-        db.ref('trips').on('value', (snapshot) => {
-            if(!snapshot.exists()) {
-                log("No trips found in database yet. Is the Driver App sending?");
+        // 1. CLEAR DATA FUNCTION
+        function clearAllData() {
+            if(confirm("Are you sure you want to permanently delete all trip history?")) {
+                db.ref('trips').remove()
+                .then(() => { 
+                    alert("Database Cleared.");
+                    location.reload(); 
+                });
             }
-        });
+        }
 
-        // Listen for the most recent trip
+        // 2. LISTEN FOR TRIPS
         db.ref('trips').limitToLast(1).on('child_added', (tripSnap) => {
-            log("Connected to Trip: " + tripSnap.key);
+            // Display the User-Defined Name
+            document.getElementById('activeTrip').innerText = tripSnap.key;
             
-            // Listen for every new data point in this trip
             tripSnap.ref.on('child_added', (dataSnap) => {
                 const data = dataSnap.val();
                 const time = new Date(data.t).toLocaleTimeString();
-                
                 chart.data.labels.push(time);
                 chart.data.datasets[0].data.push(data.g);
-                
-                if (chart.data.labels.length > 50) {
-                    chart.data.labels.shift();
-                    chart.data.datasets[0].data.shift();
-                }
-
-                document.getElementById('cG').innerText = data.g;
                 chart.update('none');
             });
         });
