@@ -5,21 +5,25 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px; border-radius: 15px; }
+        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; margin: 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px 25px; border-radius: 15px; border-bottom: 3px solid #22d3ee; }
         .chart-area { background: #1e293b; border-radius: 15px; margin-top: 20px; padding: 20px; height: 60vh; }
-        .danger-btn { background: #7f1d1d; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; }
-        #activeTrip { color: #22d3ee; font-weight: bold; }
+        .stat-pill { background: #334155; padding: 10px 20px; border-radius: 50px; font-weight: bold; border: 1px solid #475569; }
+        .danger-btn { background: #7f1d1d; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .danger-btn:hover { background: #b91c1c; }
+        #activeTrip { color: #22d3ee; }
     </style>
 </head>
 <body>
     <div class="header">
         <div>
-            <h2 style="margin:0">Curator Monitor</h2>
-            <span>Active Trip: <span id="activeTrip">Waiting...</span></span>
+            <h2 style="margin:0">Archivault Monitor</h2>
+            <span style="font-size:0.9em">Current Trip: <span id="activeTrip">Waiting for Driver...</span></span>
         </div>
-        <button class="danger-btn" onclick="clearAllData()">DELETE ALL TRIPS</button>
+        <div class="stat-pill">Peak: <span id="cG" style="color:#22d3ee">0.00</span>G</div>
+        <button class="danger-btn" onclick="clearDatabase()">CLEAR ALL TRIPS</button>
     </div>
 
     <div class="chart-area">
@@ -39,31 +43,43 @@
         const ctx = document.getElementById('tripChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', stepped: true }] },
-            options: { responsive: true, maintainAspectRatio: false }
+            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.1)', fill: true, stepped: true, pointRadius: 2 }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } } }
+            }
         });
 
-        // 1. CLEAR DATA FUNCTION
-        function clearAllData() {
-            if(confirm("Are you sure you want to permanently delete all trip history?")) {
+        // FUNCTION TO WIPE THE DATABASE
+        function clearDatabase() {
+            if(confirm("WARNING: This will permanently delete all trip data from the database. Proceed?")) {
                 db.ref('trips').remove()
-                .then(() => { 
-                    alert("Database Cleared.");
-                    location.reload(); 
-                });
+                .then(() => {
+                    alert("Database cleared successfully.");
+                    location.reload(); // Refresh the page to reset the graph
+                })
+                .catch((error) => { alert("Error deleting data: " + error.message); });
             }
         }
 
-        // 2. LISTEN FOR TRIPS
+        // LISTEN FOR TRIPS
         db.ref('trips').limitToLast(1).on('child_added', (tripSnap) => {
-            // Display the User-Defined Name
             document.getElementById('activeTrip').innerText = tripSnap.key;
             
             tripSnap.ref.on('child_added', (dataSnap) => {
                 const data = dataSnap.val();
                 const time = new Date(data.t).toLocaleTimeString();
+                
                 chart.data.labels.push(time);
                 chart.data.datasets[0].data.push(data.g);
+                document.getElementById('cG').innerText = data.g;
+
+                // Keeps graph manageable
+                if (chart.data.labels.length > 300) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
                 chart.update('none');
             });
         });
