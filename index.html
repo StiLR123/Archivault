@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrickHeads Sensor Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #1a1a1a; color: white; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: #2d2d2d; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { color: #00ffcc; margin-bottom: 5px; }
+        p { color: #aaa; margin-bottom: 25px; }
+        
+        button { 
+            padding: 15px 40px; font-size: 1.1em; font-weight: bold; cursor: pointer;
+            background-color: #00ffcc; color: #1a1a1a; border: none; border-radius: 50px;
+            transition: transform 0.2s, background 0.2s;
+        }
+        button:hover { background-color: #00d4aa; transform: scale(1.05); }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 30px; }
+        .data-card { background: #3d3d3d; padding: 15px; border-radius: 10px; border-bottom: 4px solid #00ffcc; }
+        .label { display: block; font-size: 0.8em; color: #888; text-transform: uppercase; }
+        .value { font-size: 1.8em; font-weight: bold; font-family: monospace; }
+        
+        #status { margin-top: 20px; font-size: 0.9em; color: #ffcc00; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>BrickHeads Lab</h1>
+        <p>Micro:bit Accelerometer Live Feed</p>
+        
+        <button id="connectBtn">CONNECT MICRO:BIT</button>
+        
+        <div id="status">Status: Waiting for user...</div>
+
+        <div class="data-grid">
+            <div class="data-card">
+                <span class="label">X-Axis</span>
+                <div id="xVal" class="value">0.00</div>
+            </div>
+            <div class="data-card">
+                <span class="label">Y-Axis</span>
+                <div id="yVal" class="value">0.00</div>
+            </div>
+            <div class="data-card">
+                <div class="label">Z-Axis</div>
+                <div id="zVal" class="value">0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Standard Micro:bit Bluetooth UUIDs
+        const ACCEL_SERVICE = 'e95d0753-251d-470a-a062-fa1922dfa9a8';
+        const ACCEL_DATA = 'e95dca53-251d-470a-a062-fa1922dfa9a8';
+
+        const connectBtn = document.getElementById('connectBtn');
+        const statusText = document.getElementById('status');
+
+        connectBtn.addEventListener('click', async () => {
+            try {
+                // 1. Search for the micro:bit
+                statusText.innerText = "Status: Searching for micro:bit...";
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'BBC micro:bit' }],
+                    optionalServices: [ACCEL_SERVICE]
+                });
+
+                // 2. Connect to the device
+                statusText.innerText = "Status: Connecting to GATT Server...";
+                const server = await device.gatt.connect();
+
+                // 3. Get the Accelerometer Service
+                statusText.innerText = "Status: Getting Service...";
+                const service = await server.getPrimaryService(ACCEL_SERVICE);
+
+                // 4. Get the Data Characteristic
+                statusText.innerText = "Status: Getting Characteristic...";
+                const characteristic = await service.getCharacteristic(ACCEL_DATA);
+
+                // 5. Start receiving data
+                await characteristic.startNotifications();
+                statusText.innerText = "Status: Receiving Live Data!";
+                statusText.style.color = "#00ffcc";
+                connectBtn.disabled = true;
+
+                // 6. Translate the binary buffer
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    let view = event.target.value;
+
+                    // Micro:bit sends 2-byte integers (Little Endian)
+                    // We divide by 1000 to convert milli-g to standard G-force
+                    let x = (view.getInt16(0, true) / 1000).toFixed(2);
+                    let y = (view.getInt16(2, true) / 1000).toFixed(2);
+                    let z = (view.getInt16(4, true) / 1000).toFixed(2);
+
+                    document.getElementById('xVal').innerText = x;
+                    document.getElementById('yVal').innerText = y;
+                    document.getElementById('zVal').innerText = z;
+                });
+
+                // Handle disconnection
+                device.addEventListener('gattserverdisconnected', () => {
+                    statusText.innerText = "Status: Disconnected. Please refresh.";
+                    statusText.style.color = "#ff4444";
+                    connectBtn.disabled = false;
+                });
+
+            } catch (error) {
+                console.error(error);
+                statusText.innerText = "Error: " + error.message;
+                statusText.style.color = "#ff4444";
+            }
+        });
+    </script>
+</body>
+</html>
