@@ -3,142 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrickHeads Transport Guard</title>
+    <title>BrickHeads Driver App</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; transition: background 0.3s; margin: 0; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
-        h1 { color: #22d3ee; margin: 0; font-size: 1.8em; }
-        #status { margin: 15px 0; padding: 10px; border-radius: 12px; background: #334155; color: #facc15; font-size: 0.9em; font-weight: bold; }
-        
-        /* Alarm Visuals */
-        .alarm-active { background-color: #7f1d1d !important; }
-        .alarm-active .container { background-color: #991b1b; }
-
-        button { 
-            padding: 16px 40px; font-size: 1.1em; font-weight: 800; cursor: pointer;
-            background: #22d3ee; color: #0f172a; border: none; border-radius: 50px;
-            box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
-        }
-
-        .sensor-card { margin-top: 15px; background: #0f172a; padding: 20px; border-radius: 16px; border-left: 5px solid #22d3ee; }
-        .live-force { font-size: 3.5em; font-weight: bold; color: #00ffcc; display: block; }
-        
-        .max-box { margin-top: 15px; background: #334155; padding: 15px; border-radius: 16px; border: 2px dashed #475569; }
-        .max-val { font-size: 2em; color: #facc15; font-weight: bold; }
-        .max-alert { border-color: #fb7185; background: #450a0a; }
-
-        .settings { margin-top: 20px; text-align: left; background: #1e293b; padding: 15px; border-radius: 12px; border: 1px solid #334155; }
-        input[type=range] { width: 100%; accent-color: #22d3ee; margin-top: 10px; }
-        
-        .reset-btn { background: #475569; padding: 8px 20px; font-size: 0.8em; margin-top: 10px; color: white; }
+        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        h1 { color: #22d3ee; margin-bottom: 5px; }
+        #status { margin: 15px 0; padding: 10px; border-radius: 12px; background: #334155; color: #facc15; font-weight: bold; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+        .box { background: #334155; padding: 15px; border-radius: 15px; }
+        .val { font-size: 1.8em; font-weight: bold; display: block; }
+        .alarm-active { background-color: #7f1d1d !important; animation: flash 0.5s infinite alternate; }
+        @keyframes flash { from { background-color: #7f1d1d; } to { background-color: #b91c1c; } }
+        button { padding: 15px 30px; border-radius: 12px; background: #22d3ee; border: none; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; }
+        input[type=range] { width: 100%; margin-top: 10px; }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h1>BrickHeads Lab</h1>
-        <div id="status">Ready to Monitor</div>
-        <button id="connectBtn">START MONITORING</button>
-
-        <div id="monitorUI" style="display:none;">
-            <div class="sensor-card">
-                <span class="label" style="color:#94a3b8; font-size: 0.8em; text-transform: uppercase;">Current Force</span>
-                <span id="forceVal" class="live-force">1.00G</span>
+        <h1>Driver Guard</h1>
+        <div id="status">Disconnected</div>
+        
+        <div class="stat-grid">
+            <div class="box">
+                <small>LIVE G-FORCE</small>
+                <span id="liveVal" class="val">0.00G</span>
             </div>
-
-            <div id="maxBox" class="max-box">
-                <span class="label" style="color:#94a3b8; font-size: 0.8em; text-transform: uppercase;">Maximum Shock Detected</span><br>
-                <span id="maxVal" class="max-val">0.00G</span><br>
-                <button class="reset-btn" onclick="resetMax()">RESET MAX</button>
-            </div>
-
-            <div class="settings">
-                <label>Alarm Threshold: <span id="threshDisp" style="color:#22d3ee; font-weight:bold;">1.50</span>G</label>
-                <input type="range" id="threshold" min="1.1" max="5.0" step="0.1" value="1.5">
+            <div class="box">
+                <small>TRIP MAX</small>
+                <span id="maxVal" class="val">0.00G</span>
             </div>
         </div>
+
+        <div class="box" style="margin-bottom: 20px;">
+            <label>Alarm Threshold: <span id="threshDisp">1.50</span>G</label>
+            <input type="range" id="threshold" min="0.5" max="5.0" step="0.1" value="1.5">
+        </div>
+
+        <button id="connectBtn">START TRANSPORT</button>
     </div>
 
     <script>
-        const ACCEL_SRV = 'e95d0753-251d-470a-a062-fa1922dfa9a8';
-        const ACCEL_DAT = 'e95dca4b-251d-470a-a062-fa1922dfa9a8';
-
-        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let maxShock = 0;
-        const connectBtn = document.getElementById('connectBtn');
-        const statusText = document.getElementById('status');
-        const thresholdInput = document.getElementById('threshold');
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLiWeNn7SVAs0VDpv8ST6xvplqGytnnIU",
+            authDomain: "archivault-8d6ff.firebaseapp.com",
+            databaseURL: "https://archivault-8d6ff-default-rtdb.firebaseio.com/",
+            projectId: "archivault-8d6ff",
+            storageBucket: "archivault-8d6ff.firebasestorage.app",
+            messagingSenderId: "162258741675",
+            appId: "1:162258741675:web:35e26def41f72e65a38aee"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
         
-        function playAlarm() {
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(660, audioCtx.currentTime); 
-            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-        }
+        // Generate a unique ID for this specific drive
+        const sessionID = "Trip_" + Date.now();
+        let maxShock = 0;
+
+        const connectBtn = document.getElementById('connectBtn');
+        const thresholdInput = document.getElementById('threshold');
 
         connectBtn.addEventListener('click', async () => {
             try {
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
-                    optionalServices: [ACCEL_SRV]
+                    optionalServices: ['e95d0753-251d-470a-a062-fa1922dfa9a8']
                 });
-
                 const server = await device.gatt.connect();
-                const service = await server.getPrimaryService(ACCEL_SRV);
-                const char = await service.getCharacteristic(ACCEL_DAT);
-
-                await char.startNotifications();
-                statusText.innerText = "Monitoring: " + device.name;
-                connectBtn.style.display = "none";
-                document.getElementById('monitorUI').style.display = "block";
-
-                char.addEventListener('characteristicvaluechanged', (e) => {
-                    let v = e.target.value;
-                    let x = v.getInt16(0, true) / 1000;
-                    let y = v.getInt16(2, true) / 1000;
-                    let z = v.getInt16(4, true) / 1000;
-
+                const service = await server.getPrimaryService('e95d0753-251d-470a-a062-fa1922dfa9a8');
+                const char = await service.getCharacteristic('e95dca4b-251d-470a-a062-fa1922dfa9a8');
+                
+                document.getElementById('status').innerText = "LIVE: Streaming to Museum";
+                char.startNotifications();
+                
+                char.addEventListener('characteristicvaluechanged', (event) => {
+                    let data = event.target.value;
+                    let x = data.getInt16(0, true) / 1000;
+                    let y = data.getInt16(2, true) / 1000;
+                    let z = data.getInt16(4, true) / 1000;
                     let total = Math.sqrt(x*x + y*y + z*z);
-                    document.getElementById('forceVal').innerText = total.toFixed(2) + "G";
+                    
+                    document.getElementById('liveVal').innerText = total.toFixed(2) + "G";
 
-                    // Update Max Shock
                     if (total > maxShock) {
                         maxShock = total;
                         document.getElementById('maxVal').innerText = maxShock.toFixed(2) + "G";
                     }
 
-                    // Check Threshold
+                    // Alarm Logic
                     let limit = parseFloat(thresholdInput.value);
                     if (total > limit) {
                         document.body.classList.add('alarm-active');
-                        playAlarm();
                     } else {
                         document.body.classList.remove('alarm-active');
                     }
 
-                    // Style Max Box if it's over the limit
-                    if (maxShock > limit) {
-                        document.getElementById('maxBox').classList.add('max-alert');
-                    } else {
-                        document.getElementById('maxBox').classList.remove('max-alert');
-                    }
+                    // Send data to Firebase under the unique Trip ID
+                    db.ref('trips/' + sessionID).push({
+                        g: total.toFixed(2),
+                        t: Date.now()
+                    });
                 });
-
-            } catch (err) {
-                statusText.innerText = "Error: " + err.message;
-            }
+            } catch (err) { alert("Link Error: " + err); }
         });
-
-        function resetMax() {
-            maxShock = 0;
-            document.getElementById('maxVal').innerText = "0.00G";
-            document.getElementById('maxBox').classList.remove('max-alert');
-        }
 
         thresholdInput.oninput = function() {
             document.getElementById('threshDisp').innerText = parseFloat(this.value).toFixed(2);
