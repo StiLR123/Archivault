@@ -3,140 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrickHeads Lab Dashboard</title>
+    <title>BrickHeads Shock Monitor</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; transition: background 0.2s; }
+        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); margin-top: 20px; }
         h1 { color: #22d3ee; margin: 0; }
-        #status { margin: 15px 0; padding: 10px; border-radius: 12px; background: #334155; color: #facc15; font-size: 0.9em; font-weight: bold; }
+        #status { margin: 15px 0; padding: 10px; border-radius: 12px; background: #334155; color: #facc15; font-weight: bold; }
         
+        .alarm-active { background-color: #7f1d1d !important; } /* Red background for alarm */
+
         button { 
             padding: 16px 40px; font-size: 1.1em; font-weight: 800; cursor: pointer;
             background: #22d3ee; color: #0f172a; border: none; border-radius: 50px;
-            box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
         }
 
-        .sensor-card { display: none; margin-top: 15px; background: #0f172a; padding: 15px; border-radius: 16px; border-left: 5px solid #22d3ee; text-align: left; }
-        .val { font-family: monospace; font-size: 1.6em; color: #22d3ee; float: right; font-weight: bold; }
-        .label { color: #94a3b8; text-transform: uppercase; font-size: 0.75em; font-weight: bold; }
+        .sensor-card { margin-top: 15px; background: #0f172a; padding: 20px; border-radius: 16px; border-left: 5px solid #22d3ee; }
+        .total-force { font-size: 3em; font-weight: bold; color: #00ffcc; display: block; margin: 10px 0; }
         
-        .axis-row { border-bottom: 1px solid #1e293b; padding: 8px 0; clear: both; }
-        .btn-state { display: inline-block; padding: 5px 12px; border-radius: 6px; background: #334155; color: white; margin-left: 10px; font-weight: bold; }
-        .pressed { background: #22d3ee; color: #0f172a; }
+        .settings { margin-top: 20px; text-align: left; background: #334155; padding: 15px; border-radius: 12px; }
+        input[type=range] { width: 100%; accent-color: #22d3ee; }
+        
+        #warning-text { font-size: 1.5em; color: #fb7185; font-weight: bold; visibility: hidden; }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" id="mainBox">
         <h1>BrickHeads Lab</h1>
-        <div id="status">Ready to Connect</div>
-        <button id="connectBtn">SELECT ROBOT</button>
+        <div id="status">Ready to Monitor</div>
+        <button id="connectBtn">START TRANSPORT MONITOR</button>
 
-        <div id="accelCard" class="sensor-card">
-            <span class="label">Accelerometer (G-Force)</span>
-            <div class="axis-row">X: <span id="xVal" class="val">0.00</span></div>
-            <div class="axis-row">Y: <span id="yVal" class="val">0.00</span></div>
-            <div class="axis-row">Z: <span id="zVal" class="val">0.00</span></div>
-        </div>
+        <div id="monitorUI" style="display:none;">
+            <div class="sensor-card">
+                <span style="color: #94a3b8; text-transform: uppercase; font-size: 0.8em;">Real-time Impact Force</span>
+                <span id="forceVal" class="total-force">1.00G</span>
+                <div id="warning-text">⚠️ SHOCK DETECTED! ⚠️</div>
+            </div>
 
-        <div id="tempCard" class="sensor-card">
-            <span class="label">Internal Temperature</span>
-            <span id="tempVal" class="val">--°C</span>
-        </div>
-
-        <div id="buttonCard" class="sensor-card">
-            <span class="label">Button Status</span><br><br>
-            A: <span id="btnA" class="btn-state">UP</span>
-            B: <span id="btnB" class="btn-state">UP</span>
+            <div class="settings">
+                <label>Shock Sensitivity: <span id="threshDisp">1.50</span>G</label>
+                <input type="range" id="threshold" min="1.1" max="3.0" step="0.1" value="1.5">
+                <p style="font-size: 0.7em; color: #94a3b8;">Lower = More sensitive (Gravel Road)<br>Higher = Less sensitive (Potholes)</p>
+            </div>
         </div>
     </div>
 
     <script>
-        // Standard BBC micro:bit UUIDs
-        const UUIDS = {
-            ACCEL_SRV: 'e95d0753-251d-470a-a062-fa1922dfa9a8',
-            ACCEL_DAT: 'e95dca4b-251d-470a-a062-fa1922dfa9a8',
-            TEMP_SRV:  'e95d9250-251d-470a-a062-fa1922dfa9a8', // The ID you requested
-            TEMP_DAT:  'e95d9251-251d-470a-a062-fa1922dfa9a8',
-            BTN_SRV:   'e95d6100-251d-470a-a062-fa1922dfa9a8',
-            BTN_A_DAT: 'e95d9313-251d-470a-a062-fa1922dfa9a8',
-            BTN_B_DAT: 'e95d9314-251d-470a-a062-fa1922dfa9a8'
-        };
+        const ACCEL_SRV = 'e95d0753-251d-470a-a062-fa1922dfa9a8';
+        const ACCEL_DAT = 'e95dca4b-251d-470a-a062-fa1922dfa9a8';
 
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const connectBtn = document.getElementById('connectBtn');
         const statusText = document.getElementById('status');
+        const thresholdInput = document.getElementById('threshold');
+        
+        // Function to make the phone beep
+        function playAlarm() {
+            let osc = audioCtx.createOscillator();
+            let msg = audioCtx.createGain();
+            osc.connect(msg);
+            msg.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); // High pitch A note
+            msg.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2); // Beep duration
+        }
 
         connectBtn.addEventListener('click', async () => {
             try {
-                // Request device with all three services enabled
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
-                    optionalServices: [UUIDS.ACCEL_SRV, UUIDS.TEMP_SRV, UUIDS.BTN_SRV]
+                    optionalServices: [ACCEL_SRV]
                 });
 
-                statusText.innerText = "Connecting...";
                 const server = await device.gatt.connect();
-                const services = await server.getPrimaryServices();
+                const service = await server.getPrimaryService(ACCEL_SRV);
+                const char = await service.getCharacteristic(ACCEL_DAT);
+
+                await char.startNotifications();
                 
-                for (const s of services) {
-                    if (s.uuid === UUIDS.ACCEL_SRV) initAccel(s);
-                    if (s.uuid === UUIDS.TEMP_SRV)  initTemp(s);
-                    if (s.uuid === UUIDS.BTN_SRV)   initButtons(s);
-                }
-
-                statusText.innerText = "Connected: " + device.name;
-                statusText.style.color = "#22d3ee";
+                statusText.innerText = "Monitoring " + device.name;
                 connectBtn.style.display = "none";
+                document.getElementById('monitorUI').style.display = "block";
 
-            } catch (error) {
-                statusText.innerText = "Error: " + error.message;
+                char.addEventListener('characteristicvaluechanged', (e) => {
+                    let v = e.target.value;
+                    // Convert to G-force
+                    let x = v.getInt16(0, true) / 1000;
+                    let y = v.getInt16(2, true) / 1000;
+                    let z = v.getInt16(4, true) / 1000;
+
+                    // Calculate Magnitude (Total Force)
+                    let total = Math.sqrt(x*x + y*y + z*z);
+                    document.getElementById('forceVal').innerText = total.toFixed(2) + "G";
+
+                    // Check Threshold
+                    let limit = parseFloat(thresholdInput.value);
+                    if (total > limit) {
+                        triggerAlarm();
+                    } else {
+                        resetAlarm();
+                    }
+                });
+
+            } catch (err) {
+                statusText.innerText = "Error: " + err.message;
             }
         });
 
-        async function initAccel(s) {
-            document.getElementById('accelCard').style.display = 'block';
-            const c = await s.getCharacteristic(UUIDS.ACCEL_DAT);
-            await c.startNotifications();
-            c.addEventListener('characteristicvaluechanged', (e) => {
-                let v = e.target.value;
-                document.getElementById('xVal').innerText = (v.getInt16(0, true) / 1000).toFixed(2);
-                document.getElementById('yVal').innerText = (v.getInt16(2, true) / 1000).toFixed(2);
-                document.getElementById('zVal').innerText = (v.getInt16(4, true) / 1000).toFixed(2);
-            });
+        function triggerAlarm() {
+            document.body.classList.add('alarm-active');
+            document.getElementById('warning-text').style.visibility = 'visible';
+            playAlarm();
         }
 
-        async function initTemp(s) {
-            document.getElementById('tempCard').style.display = 'block';
-            const c = await s.getCharacteristic(UUIDS.TEMP_DAT);
-            await c.startNotifications();
-            c.addEventListener('characteristicvaluechanged', (e) => {
-                // Temperature is a single byte (8-bit integer)
-                document.getElementById('tempVal').innerText = e.target.value.getInt8(0) + "°C";
-            });
+        function resetAlarm() {
+            document.body.classList.remove('alarm-active');
+            document.getElementById('warning-text').style.visibility = 'hidden';
         }
 
-        async function initButtons(s) {
-            document.getElementById('buttonCard').style.display = 'block';
-            const cA = await s.getCharacteristic(UUIDS.BTN_A_DAT);
-            const cB = await s.getCharacteristic(UUIDS.BTN_B_DAT);
-            
-            await cA.startNotifications();
-            await cB.startNotifications();
-
-            cA.addEventListener('characteristicvaluechanged', (e) => {
-                const pressed = e.target.value.getUint8(0) > 0;
-                const el = document.getElementById('btnA');
-                el.innerText = pressed ? "PRESSED" : "UP";
-                el.className = pressed ? "btn-state pressed" : "btn-state";
-            });
-
-            cB.addEventListener('characteristicvaluechanged', (e) => {
-                const pressed = e.target.value.getUint8(0) > 0;
-                const el = document.getElementById('btnB');
-                el.innerText = pressed ? "PRESSED" : "UP";
-                el.className = pressed ? "btn-state pressed" : "btn-state";
-            });
-        }
+        thresholdInput.oninput = function() {
+            document.getElementById('threshDisp').innerText = parseFloat(this.value).toFixed(2);
+        };
     </script>
 </body>
 </html>
