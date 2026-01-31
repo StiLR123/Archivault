@@ -3,62 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrickHeads Full Sensor Suite</title>
+    <title>BrickHeads Lab Dashboard</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; padding: 20px; }
         .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
         h1 { color: #22d3ee; margin: 0; }
-        #status { margin: 15px 0; padding: 10px; border-radius: 12px; background: #334155; color: #facc15; font-size: 0.9em; }
+        #status { margin: 15px 0; padding: 10px; border-radius: 12px; background: #334155; color: #facc15; font-size: 0.9em; font-weight: bold; }
         
         button { 
             padding: 16px 40px; font-size: 1.1em; font-weight: 800; cursor: pointer;
             background: #22d3ee; color: #0f172a; border: none; border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
         }
 
         .sensor-card { display: none; margin-top: 15px; background: #0f172a; padding: 15px; border-radius: 16px; border-left: 5px solid #22d3ee; text-align: left; }
-        .val { font-family: monospace; font-size: 1.4em; color: #22d3ee; float: right; font-weight: bold; }
+        .val { font-family: monospace; font-size: 1.6em; color: #22d3ee; float: right; font-weight: bold; }
         .label { color: #94a3b8; text-transform: uppercase; font-size: 0.75em; font-weight: bold; }
         
-        /* Button styling */
-        .btn-state { display: inline-block; padding: 5px 15px; border-radius: 5px; background: #334155; color: white; margin-left: 10px; }
-        .active-press { background: #22d3ee; color: #0f172a; }
-
-        #debug { margin-top: 20px; font-size: 0.7em; color: #475569; text-align: left; border-top: 1px solid #334155; padding-top: 10px; }
+        .axis-row { border-bottom: 1px solid #1e293b; padding: 8px 0; clear: both; }
+        .btn-state { display: inline-block; padding: 5px 12px; border-radius: 6px; background: #334155; color: white; margin-left: 10px; font-weight: bold; }
+        .pressed { background: #22d3ee; color: #0f172a; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>BrickHeads Lab</h1>
-        <div id="status">Ready to connect...</div>
-        <button id="connectBtn">SELECT MICRO:BIT</button>
+        <div id="status">Ready to Connect</div>
+        <button id="connectBtn">SELECT ROBOT</button>
 
         <div id="accelCard" class="sensor-card">
-            <span class="label">Accelerometer (G)</span>
-            <div>X: <span id="xVal" class="val">0.00</span></div>
-            <div>Y: <span id="yVal" class="val">0.00</span></div>
-            <div>Z: <span id="zVal" class="val">0.00</span></div>
+            <span class="label">Accelerometer (G-Force)</span>
+            <div class="axis-row">X: <span id="xVal" class="val">0.00</span></div>
+            <div class="axis-row">Y: <span id="yVal" class="val">0.00</span></div>
+            <div class="axis-row">Z: <span id="zVal" class="val">0.00</span></div>
         </div>
 
         <div id="tempCard" class="sensor-card">
-            <span class="label">Temperature</span>
+            <span class="label">Internal Temperature</span>
             <span id="tempVal" class="val">--°C</span>
         </div>
 
         <div id="buttonCard" class="sensor-card">
-            <span class="label">Physical Buttons</span><br><br>
-            Button A: <span id="btnA" class="btn-state">UP</span>
-            Button B: <span id="btnB" class="btn-state">UP</span>
+            <span class="label">Button Status</span><br><br>
+            A: <span id="btnA" class="btn-state">UP</span>
+            B: <span id="btnB" class="btn-state">UP</span>
         </div>
-
-        <div id="debug">Detected UUIDs: <span id="foundIds">none</span></div>
     </div>
 
     <script>
+        // Standard BBC micro:bit UUIDs
         const UUIDS = {
             ACCEL_SRV: 'e95d0753-251d-470a-a062-fa1922dfa9a8',
             ACCEL_DAT: 'e95dca4b-251d-470a-a062-fa1922dfa9a8',
-            TEMP_SRV:  'e95d9250-251d-470a-a062-fa1922dfa9a8',
+            TEMP_SRV:  'e95d9250-251d-470a-a062-fa1922dfa9a8', // The ID you requested
             TEMP_DAT:  'e95d9251-251d-470a-a062-fa1922dfa9a8',
             BTN_SRV:   'e95d6100-251d-470a-a062-fa1922dfa9a8',
             BTN_A_DAT: 'e95d9313-251d-470a-a062-fa1922dfa9a8',
@@ -70,24 +68,24 @@
 
         connectBtn.addEventListener('click', async () => {
             try {
+                // Request device with all three services enabled
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
                     optionalServices: [UUIDS.ACCEL_SRV, UUIDS.TEMP_SRV, UUIDS.BTN_SRV]
                 });
 
+                statusText.innerText = "Connecting...";
                 const server = await device.gatt.connect();
                 const services = await server.getPrimaryServices();
                 
-                let foundList = [];
-                for (const service of services) {
-                    foundList.push(service.uuid.substring(0,8));
-                    if (service.uuid === UUIDS.ACCEL_SRV) initAccel(service);
-                    if (service.uuid === UUIDS.TEMP_SRV)  initTemp(service);
-                    if (service.uuid === UUIDS.BTN_SRV)   initButtons(service);
+                for (const s of services) {
+                    if (s.uuid === UUIDS.ACCEL_SRV) initAccel(s);
+                    if (s.uuid === UUIDS.TEMP_SRV)  initTemp(s);
+                    if (s.uuid === UUIDS.BTN_SRV)   initButtons(s);
                 }
 
-                document.getElementById('foundIds').innerText = foundList.join(", ");
-                statusText.innerText = "Monitoring: " + device.name;
+                statusText.innerText = "Connected: " + device.name;
+                statusText.style.color = "#22d3ee";
                 connectBtn.style.display = "none";
 
             } catch (error) {
@@ -112,30 +110,31 @@
             const c = await s.getCharacteristic(UUIDS.TEMP_DAT);
             await c.startNotifications();
             c.addEventListener('characteristicvaluechanged', (e) => {
+                // Temperature is a single byte (8-bit integer)
                 document.getElementById('tempVal').innerText = e.target.value.getInt8(0) + "°C";
             });
         }
 
         async function initButtons(s) {
             document.getElementById('buttonCard').style.display = 'block';
-            const charA = await s.getCharacteristic(UUIDS.BTN_A_DAT);
-            const charB = await s.getCharacteristic(UUIDS.BTN_B_DAT);
+            const cA = await s.getCharacteristic(UUIDS.BTN_A_DAT);
+            const cB = await s.getCharacteristic(UUIDS.BTN_B_DAT);
             
-            await charA.startNotifications();
-            await charB.startNotifications();
+            await cA.startNotifications();
+            await cB.startNotifications();
 
-            charA.addEventListener('characteristicvaluechanged', (e) => {
-                const val = e.target.value.getUint8(0);
+            cA.addEventListener('characteristicvaluechanged', (e) => {
+                const pressed = e.target.value.getUint8(0) > 0;
                 const el = document.getElementById('btnA');
-                el.innerText = val > 0 ? "PRESSED" : "UP";
-                el.className = val > 0 ? "btn-state active-press" : "btn-state";
+                el.innerText = pressed ? "PRESSED" : "UP";
+                el.className = pressed ? "btn-state pressed" : "btn-state";
             });
 
-            charB.addEventListener('characteristicvaluechanged', (e) => {
-                const val = e.target.value.getUint8(0);
+            cB.addEventListener('characteristicvaluechanged', (e) => {
+                const pressed = e.target.value.getUint8(0) > 0;
                 const el = document.getElementById('btnB');
-                el.innerText = val > 0 ? "PRESSED" : "UP";
-                el.className = val > 0 ? "btn-state active-press" : "btn-state";
+                el.innerText = pressed ? "PRESSED" : "UP";
+                el.className = pressed ? "btn-state pressed" : "btn-state";
             });
         }
     </script>
