@@ -7,17 +7,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; transition: background 0.3s; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; margin: 0; padding: 20px; }
         .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         h1 { color: #22d3ee; margin-bottom: 5px; }
         #status { margin: 15px 0; padding: 10px; border-radius: 12px; background: #334155; color: #facc15; font-weight: bold; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .box { background: #334155; padding: 15px; border-radius: 15px; }
+        .box { background: #334155; padding: 15px; border-radius: 15px; margin-bottom: 15px; }
         .val { font-size: 1.8em; font-weight: bold; display: block; }
-        .alarm-active { background-color: #7f1d1d !important; animation: flash 0.5s infinite alternate; }
-        @keyframes flash { from { background-color: #7f1d1d; } to { background-color: #b91c1c; } }
+        input[type=text] { width: 80%; padding: 10px; border-radius: 8px; border: none; margin-top: 10px; font-size: 1em; }
         button { padding: 15px 30px; border-radius: 12px; background: #22d3ee; border: none; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; }
-        input[type=range] { width: 100%; margin-top: 10px; }
+        .alarm-active { background-color: #7f1d1d !important; }
     </style>
 </head>
 <body>
@@ -25,20 +23,14 @@
         <h1>Driver Guard</h1>
         <div id="status">Disconnected</div>
         
-        <div class="stat-grid">
-            <div class="box">
-                <small>LIVE G-FORCE</small>
-                <span id="liveVal" class="val">0.00G</span>
-            </div>
-            <div class="box">
-                <small>TRIP MAX</small>
-                <span id="maxVal" class="val">0.00G</span>
-            </div>
+        <div class="box">
+            <label>Trip Identity Name:</label><br>
+            <input type="text" id="tripName" placeholder="e.g. King_Tut_Gravel_Road">
         </div>
 
-        <div class="box" style="margin-bottom: 20px;">
-            <label>Alarm Threshold: <span id="threshDisp">1.50</span>G</label>
-            <input type="range" id="threshold" min="0.5" max="5.0" step="0.1" value="1.5">
+        <div class="box">
+            <small>LIVE PEAK (1s)</small>
+            <span id="liveVal" class="val">0.00G</span>
         </div>
 
         <button id="connectBtn">START TRANSPORT</button>
@@ -56,15 +48,17 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        
-        // Generate a unique ID for this specific drive
-        const sessionID = "Trip_" + Date.now();
-        let maxShock = 0;
 
-        const connectBtn = document.getElementById('connectBtn');
-        const thresholdInput = document.getElementById('threshold');
+        let peakThisSecond = 0;
+        let lastUpload = Date.now();
 
-        connectBtn.addEventListener('click', async () => {
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            const nameInput = document.getElementById('tripName').value.trim();
+            if (!nameInput) { alert("Please enter a Trip Name first!"); return; }
+            
+            // Clean name for Firebase (no spaces or dots)
+            const safeName = nameInput.replace(/[^a-zA-Z0-9]/g, "_");
+
             try {
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
@@ -74,7 +68,7 @@
                 const service = await server.getPrimaryService('e95d0753-251d-470a-a062-fa1922dfa9a8');
                 const char = await service.getCharacteristic('e95dca4b-251d-470a-a062-fa1922dfa9a8');
                 
-                document.getElementById('status').innerText = "LIVE: Streaming to Museum";
+                document.getElementById('status').innerText = "Streaming: " + safeName;
                 char.startNotifications();
                 
                 char.addEventListener('characteristicvaluechanged', (event) => {
@@ -84,33 +78,19 @@
                     let z = data.getInt16(4, true) / 1000;
                     let total = Math.sqrt(x*x + y*y + z*z);
                     
+                    if (total > peakThisSecond) { peakThisSecond = total; }
                     document.getElementById('liveVal').innerText = total.toFixed(2) + "G";
 
-                    if (total > maxShock) {
-                        maxShock = total;
-                        document.getElementById('maxVal').innerText = maxShock.toFixed(2) + "G";
+                    let now = Date.now();
+                    if (now - lastUpload >= 1000) {
+                        // Use the User-Defined Name as the key
+                        db.ref('trips/' + safeName).push({ g: peakThisSecond.toFixed(2), t: now });
+                        lastUpload = now;
+                        peakThisSecond = 0;
                     }
-
-                    // Alarm Logic
-                    let limit = parseFloat(thresholdInput.value);
-                    if (total > limit) {
-                        document.body.classList.add('alarm-active');
-                    } else {
-                        document.body.classList.remove('alarm-active');
-                    }
-
-                    // Send data to Firebase under the unique Trip ID
-                    db.ref('trips/' + sessionID).push({
-                        g: total.toFixed(2),
-                        t: Date.now()
-                    });
                 });
-            } catch (err) { alert("Link Error: " + err); }
+            } catch (err) { alert(err); }
         });
-
-        thresholdInput.oninput = function() {
-            document.getElementById('threshDisp').innerText = parseFloat(this.value).toFixed(2);
-        };
     </script>
 </body>
 </html>
