@@ -15,16 +15,15 @@
         .limit-info { color: #facc15; font-weight: bold; margin-bottom: 10px; }
         button { padding: 15px; border-radius: 12px; background: #22d3ee; border: none; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; color: #0f172a; }
         
-        /* SLOW DOWN WARNING */
-        #warningZone { display: none; background: #ef4444; color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; font-size: 1.5em; font-weight: bold; animation: blink 0.5s infinite alternate; }
-        @keyframes blink { from { opacity: 1; } to { opacity: 0.7; } }
-        .alarm-active { background-color: #7f1d1d !important; }
+        /* ALARM STATE */
+        #warningZone { display: none; background: #ef4444; color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; font-size: 1.8em; font-weight: bold; }
+        .alarm-active { background-color: #b91c1c !important; }
+        .alarm-active .container { background-color: #7f1d1d; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div id="warningZone">🚨 SLOW DOWN! 🚨<br>EXCESSIVE SHOCK</div>
-        
+        <div id="warningZone">🚨 SLOW DOWN! 🚨</div>
         <h1>Driver Guard</h1>
         <div id="status" style="margin-bottom:15px; color:#94a3b8;">Not Connected</div>
         
@@ -52,11 +51,26 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let curatorLimit = 1.5; // Default if not set
+        let curatorLimit = 1.5; 
+        let isAlarming = false; // Flag to pause monitoring during the 1-second alarm
         let peakThisSecond = 0;
         let lastUpload = Date.now();
 
-        // 1. LISTEN FOR REMOTE LIMIT FROM CURATOR
+        // Audio Context for the Beep
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playAlarmSound() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // Pitch
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 1); // Play for exactly 1 second
+        }
+
         db.ref('safety_settings/max_g').on('value', (snapshot) => {
             if (snapshot.exists()) {
                 curatorLimit = parseFloat(snapshot.val());
@@ -65,6 +79,9 @@
         });
 
         document.getElementById('connectBtn').addEventListener('click', async () => {
+            // Unlock audio for mobile browsers
+            if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
             const safeName = document.getElementById('tripName').value.trim().replace(/[^a-zA-Z0-9]/g, "_") || "Unnamed_Trip";
             try {
                 const device = await navigator.bluetooth.requestDevice({
@@ -79,6 +96,8 @@
                 char.startNotifications();
                 
                 char.addEventListener('characteristicvaluechanged', (event) => {
+                    if (isAlarming) return; // Skip data processing while alarm is playing
+
                     let data = event.target.value;
                     let x = data.getInt16(0, true) / 1000;
                     let y = data.getInt16(2, true) / 1000;
@@ -88,13 +107,9 @@
                     document.getElementById('liveVal').innerText = total.toFixed(2) + "G";
                     if (total > peakThisSecond) peakThisSecond = total;
 
-                    // WARNING SYSTEM
+                    // ALARM TRIGGER
                     if (total > curatorLimit) {
-                        document.body.classList.add('alarm-active');
-                        document.getElementById('warningZone').style.display = "block";
-                    } else {
-                        document.body.classList.remove('alarm-active');
-                        document.getElementById('warningZone').style.display = "none";
+                        triggerAlarm();
                     }
 
                     let now = Date.now();
@@ -106,6 +121,20 @@
                 });
             } catch (err) { alert(err); }
         });
+
+        function triggerAlarm() {
+            isAlarming = true;
+            document.body.classList.add('alarm-active');
+            document.getElementById('warningZone').style.display = "block";
+            playAlarmSound();
+
+            // Wait for 1 second, then reset
+            setTimeout(() => {
+                document.body.classList.remove('alarm-active');
+                document.getElementById('warningZone').style.display = "none";
+                isAlarming = false;
+            }, 1000);
+        }
     </script>
 </body>
 </html>
