@@ -1,35 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Curator Dashboard - Archivault</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curator Dashboard - Maintenance Mode</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 15px; border-radius: 15px; border-bottom: 3px solid #22d3ee; }
-        .settings-bar { background: #334155; padding: 15px; border-radius: 12px; margin: 15px 0; display: flex; align-items: center; gap: 20px; }
-        .chart-area { background: #1e293b; border-radius: 15px; padding: 20px; height: 50vh; }
-        input[type=range] { width: 200px; }
-        .safety-val { font-size: 1.2em; color: #facc15; font-weight: bold; }
+        :root { --primary: #22d3ee; --bg: #0f172a; --card: #1e293b; --danger: #ef4444; }
+        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; overflow-x: hidden; }
+        
+        /* Header & Hamburger */
+        .header { display: flex; align-items: center; background: var(--card); padding: 15px 20px; border-bottom: 2px solid var(--primary); }
+        .hamburger { font-size: 24px; cursor: pointer; margin-right: 20px; color: var(--primary); }
+        
+        /* Sidebar Menu */
+        .sidebar { position: fixed; left: -300px; top: 0; width: 300px; height: 100%; background: #111827; transition: 0.3s; z-index: 1000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); padding-top: 60px; }
+        .sidebar.active { left: 0; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
+        
+        /* Trip List Styles */
+        .trip-list { list-style: none; padding: 0; margin: 0; }
+        .trip-item { padding: 15px 20px; border-bottom: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .trip-item:hover { background: #1f2937; }
+        .live-badge { background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; }
+        .delete-btn { color: var(--danger); font-size: 18px; padding: 5px; cursor: pointer; border: none; background: none; }
+        
+        /* Main Dashboard */
+        .content { padding: 20px; }
+        .chart-area { background: var(--card); border-radius: 15px; padding: 20px; height: 60vh; position: relative; }
+        .settings { background: #334155; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 20px; align-items: center; }
+        
+        .active-title { color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
+
+    <div id="sidebar" class="sidebar">
+        <span class="close-btn" onclick="toggleMenu()">×</span>
+        <h3 style="padding: 0 20px;">Maintenance & History</h3>
+        <ul id="tripList" class="trip-list">
+            </ul>
+    </div>
+
     <div class="header">
-        <h2 style="margin:0">Curator Monitor</h2>
-        <select id="tripPicker" style="padding:8px; border-radius:5px;"><option>-- Choose Trip --</option></select>
+        <div class="hamburger" onclick="toggleMenu()">☰</div>
+        <h2 style="margin:0; flex-grow: 1;">Archivault Monitor</h2>
+        <div id="liveStatus" class="active-title">Select a Trip</div>
     </div>
 
-    <div class="settings-bar">
-        <strong>Remote Safety Limit:</strong>
-        <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5">
-        <span class="safety-val"><span id="limitDisp">1.50</span> G</span>
-        <small>(This updates the driver's alarm in real-time)</small>
-    </div>
+    <div class="content">
+        <div class="settings">
+            <strong>Safety Limit:</strong>
+            <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5">
+            <span id="limitDisp" style="color:#facc15; font-weight:bold;">1.50</span> G
+        </div>
 
-    <div class="chart-area">
-        <canvas id="tripChart"></canvas>
+        <div class="chart-area">
+            <canvas id="tripChart"></canvas>
+            <div style="position:absolute; bottom:10px; right:20px;">
+                <button onclick="chart.resetZoom()" style="background:var(--primary); border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">Reset Zoom</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -42,43 +77,92 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. UPDATE SAFETY LIMIT
-        const slider = document.getElementById('safetySlider');
-        const disp = document.getElementById('limitDisp');
-        
-        slider.oninput = function() {
-            let val = parseFloat(this.value).toFixed(2);
-            disp.innerText = val;
-            db.ref('safety_settings/max_g').set(val); // Write to Firebase
-        };
+        // Toggle Sidebar
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
 
-        // 2. CHART & DATA LOGIC (Same as before)
+        // --- Chart Setup ---
         const ctx = document.getElementById('tripChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', fill: true, stepped: true }] },
-            options: { responsive: true, maintainAspectRatio: false }
+            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', fill: true, backgroundColor: 'rgba(34,211,238,0.1)', stepped: true, pointRadius: 2 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { x: { ticks: { color: '#94a3b8' } }, y: { min: 0.5, max: 4 } },
+                plugins: { zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } } }
+            }
         });
 
-        db.ref('trips').on('value', (snap) => {
-            const picker = document.getElementById('tripPicker');
-            picker.innerHTML = '<option value="">-- Choose Trip --</option>';
-            snap.forEach(child => {
-                let opt = document.createElement('option');
-                opt.value = child.key; opt.innerText = child.key;
-                picker.appendChild(opt);
+        // --- Remote Threshold Logic ---
+        const slider = document.getElementById('safetySlider');
+        slider.oninput = function() {
+            let val = parseFloat(this.value).toFixed(2);
+            document.getElementById('limitDisp').innerText = val;
+            db.ref('safety_settings/max_g').set(val);
+        };
+
+        // --- Maintenance: Load Trip List ---
+        let currentTripRef = null;
+
+        db.ref('trips').on('value', (snapshot) => {
+            const list = document.getElementById('tripList');
+            list.innerHTML = "";
+            const now = Date.now();
+
+            snapshot.forEach((tripSnap) => {
+                const tripID = tripSnap.key;
+                const data = tripSnap.val();
+                
+                // Find the latest timestamp in this trip
+                const entries = Object.values(data);
+                const lastEntry = entries[entries.length - 1];
+                const isLive = (now - lastEntry.t < 15000); // Live if updated in last 15s
+
+                const li = document.createElement('li');
+                li.className = "trip-item";
+                li.innerHTML = `
+                    <div onclick="selectTrip('${tripID}')" style="flex-grow:1">
+                        ${tripID} ${isLive ? '<span class="live-badge">LIVE</span>' : ''}
+                    </div>
+                    <button class="delete-btn" onclick="deleteTrip('${tripID}')">🗑️</button>
+                `;
+                list.appendChild(li);
             });
         });
 
-        document.getElementById('tripPicker').onchange = function() {
-            chart.data.labels = []; chart.data.datasets[0].data = [];
-            db.ref('trips/' + this.value).on('child_added', (snap) => {
+        function selectTrip(tripID) {
+            // Unsubscribe from previous trip
+            if (currentTripRef) currentTripRef.off();
+            
+            // Clear Chart
+            chart.data.labels = [];
+            chart.data.datasets[0].data = [];
+            chart.update();
+
+            document.getElementById('liveStatus').innerText = "Viewing: " + tripID;
+            toggleMenu();
+
+            // Subscribe to new trip
+            currentTripRef = db.ref('trips/' + tripID);
+            currentTripRef.on('child_added', (snap) => {
                 const val = snap.val();
-                chart.data.labels.push(new Date(val.t).toLocaleTimeString());
+                const time = new Date(val.t).toLocaleTimeString();
+                chart.data.labels.push(time);
                 chart.data.datasets[0].data.push(val.g);
                 chart.update('none');
             });
-        };
+        }
+
+        function deleteTrip(tripID) {
+            event.stopPropagation(); // Don't trigger the "selectTrip" click
+            if (confirm(`Delete all data for trip: ${tripID}?`)) {
+                db.ref('trips/' + tripID).remove();
+                if (document.getElementById('liveStatus').innerText.includes(tripID)) {
+                    location.reload();
+                }
+            }
+        }
     </script>
 </body>
 </html>
