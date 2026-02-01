@@ -1,69 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Curator Dashboard - Maintenance Mode</title>
+    <title>Archivault - Curator Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        :root { --primary: #22d3ee; --bg: #0f172a; --card: #1e293b; --danger: #ef4444; }
-        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; overflow-x: hidden; }
+        body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; }
+        #selectionScreen { padding: 40px; text-align: center; }
+        #dashboardScreen { display: none; height: 100vh; display: flex; flex-direction: column; }
+        .trip-card { background: #1e293b; padding: 20px; border-radius: 12px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #334155; }
+        .trip-card:hover { border-color: #22d3ee; }
+        .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; font-weight: bold; }
         
-        /* Header & Hamburger */
-        .header { display: flex; align-items: center; background: var(--card); padding: 15px 20px; border-bottom: 2px solid var(--primary); }
-        .hamburger { font-size: 24px; cursor: pointer; margin-right: 20px; color: var(--primary); }
-        
-        /* Sidebar Menu */
-        .sidebar { position: fixed; left: -300px; top: 0; width: 300px; height: 100%; background: #111827; transition: 0.3s; z-index: 1000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); padding-top: 60px; }
-        .sidebar.active { left: 0; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
-        
-        /* Trip List Styles */
-        .trip-list { list-style: none; padding: 0; margin: 0; }
-        .trip-item { padding: 15px 20px; border-bottom: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .trip-item:hover { background: #1f2937; }
-        .live-badge { background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; }
-        .delete-btn { color: var(--danger); font-size: 18px; padding: 5px; cursor: pointer; border: none; background: none; }
-        
-        /* Main Dashboard */
-        .content { padding: 20px; }
-        .chart-area { background: var(--card); border-radius: 15px; padding: 20px; height: 60vh; position: relative; }
-        .settings { background: #334155; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 20px; align-items: center; }
-        
-        .active-title { color: var(--primary); font-weight: bold; }
+        header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #22d3ee; }
+        #map { flex-grow: 1; width: 100%; background: #000; }
+        .stats-panel { background: #1e293b; padding: 15px; display: flex; gap: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="sidebar" class="sidebar">
-        <span class="close-btn" onclick="toggleMenu()">×</span>
-        <h3 style="padding: 0 20px;">Maintenance & History</h3>
-        <ul id="tripList" class="trip-list">
-            </ul>
+    <div id="selectionScreen">
+        <h1>Archivault Logistics</h1>
+        <h3>Select a Trip to Monitor</h3>
+        <div id="tripList">Loading trips...</div>
     </div>
 
-    <div class="header">
-        <div class="hamburger" onclick="toggleMenu()">☰</div>
-        <h2 style="margin:0; flex-grow: 1;">Archivault Monitor</h2>
-        <div id="liveStatus" class="active-title">Select a Trip</div>
-    </div>
+    <div id="dashboardScreen">
+        <header>
+            <button onclick="location.reload()" style="background:#334155; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">← Back</button>
+            <h2 id="activeTripTitle">Trip Name</h2>
+            <div>Safety Limit: <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5"> <span id="limitDisp">1.50</span>G</div>
+        </header>
+        
+        <div id="map"></div>
 
-    <div class="content">
-        <div class="settings">
-            <strong>Safety Limit:</strong>
-            <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5">
-            <span id="limitDisp" style="color:#facc15; font-weight:bold;">1.50</span> G
-        </div>
-
-        <div class="chart-area">
-            <canvas id="tripChart"></canvas>
-            <div style="position:absolute; bottom:10px; right:20px;">
-                <button onclick="chart.resetZoom()" style="background:var(--primary); border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">Reset Zoom</button>
-            </div>
+        <div class="stats-panel">
+            <div>Current Speed/Shock: <span id="curG" style="color:#22d3ee; font-weight:bold;">0.00G</span></div>
+            <div style="margin-left:auto;">Total Breadcrumbs: <span id="breadCount">0</span></div>
         </div>
     </div>
 
@@ -77,92 +52,72 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Toggle Sidebar
-        function toggleMenu() {
-            document.getElementById('sidebar').classList.toggle('active');
-        }
+        let map, driverMarker, breadcrumbGroup;
 
-        // --- Chart Setup ---
-        const ctx = document.getElementById('tripChart').getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Shock (G)', data: [], borderColor: '#22d3ee', fill: true, backgroundColor: 'rgba(34,211,238,0.1)', stepped: true, pointRadius: 2 }] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: { x: { ticks: { color: '#94a3b8' } }, y: { min: 0.5, max: 4 } },
-                plugins: { zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } } }
-            }
-        });
-
-        // --- Remote Threshold Logic ---
-        const slider = document.getElementById('safetySlider');
-        slider.oninput = function() {
-            let val = parseFloat(this.value).toFixed(2);
-            document.getElementById('limitDisp').innerText = val;
-            db.ref('safety_settings/max_g').set(val);
-        };
-
-        // --- Maintenance: Load Trip List ---
-        let currentTripRef = null;
-
+        // --- SCREEN 1 LOGIC ---
         db.ref('trips').on('value', (snapshot) => {
             const list = document.getElementById('tripList');
             list.innerHTML = "";
-            const now = Date.now();
-
-            snapshot.forEach((tripSnap) => {
-                const tripID = tripSnap.key;
-                const data = tripSnap.val();
-                
-                // Find the latest timestamp in this trip
-                const entries = Object.values(data);
-                const lastEntry = entries[entries.length - 1];
-                const isLive = (now - lastEntry.t < 15000); // Live if updated in last 15s
-
-                const li = document.createElement('li');
-                li.className = "trip-item";
-                li.innerHTML = `
-                    <div onclick="selectTrip('${tripID}')" style="flex-grow:1">
-                        ${tripID} ${isLive ? '<span class="live-badge">LIVE</span>' : ''}
-                    </div>
-                    <button class="delete-btn" onclick="deleteTrip('${tripID}')">🗑️</button>
-                `;
-                list.appendChild(li);
+            snapshot.forEach((child) => {
+                const div = document.createElement('div');
+                div.className = "trip-card";
+                div.innerHTML = `<span onclick="startMonitoring('${child.key}')">${child.key}</span>
+                                 <button class="delete-btn" onclick="deleteTrip('${child.key}')">Delete</button>`;
+                list.appendChild(div);
             });
         });
 
-        function selectTrip(tripID) {
-            // Unsubscribe from previous trip
-            if (currentTripRef) currentTripRef.off();
-            
-            // Clear Chart
-            chart.data.labels = [];
-            chart.data.datasets[0].data = [];
-            chart.update();
+        function deleteTrip(name) {
+            if(confirm("Delete trip: " + name + "?")) db.ref('trips/' + name).remove();
+        }
 
-            document.getElementById('liveStatus').innerText = "Viewing: " + tripID;
-            toggleMenu();
+        // --- SCREEN 2 LOGIC ---
+        function startMonitoring(tripName) {
+            document.getElementById('selectionScreen').style.display = "none";
+            document.getElementById('dashboardScreen').style.display = "flex";
+            document.getElementById('activeTripTitle').innerText = tripName;
 
-            // Subscribe to new trip
-            currentTripRef = db.ref('trips/' + tripID);
-            currentTripRef.on('child_added', (snap) => {
-                const val = snap.val();
-                const time = new Date(val.t).toLocaleTimeString();
-                chart.data.labels.push(time);
-                chart.data.datasets[0].data.push(val.g);
-                chart.update('none');
+            // Initialize Map
+            map = L.map('map').setView([0, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            breadcrumbGroup = L.layerGroup().addTo(map);
+            driverMarker = L.marker([0,0]).addTo(map).bindPopup("Driver Current Location");
+
+            // Listen for Locations & Breadcrumbs
+            db.ref(`trips/${tripName}/locations`).on('child_added', (snap) => {
+                const data = snap.val();
+                const pos = [data.lat, data.lng];
+                
+                // Update Driver Marker
+                driverMarker.setLatLng(pos);
+                map.panTo(pos);
+
+                // Add Breadcrumb
+                const color = data.isViolation ? "#ef4444" : "#22d3ee";
+                const size = data.isViolation ? 8 : 4;
+                
+                L.circleMarker(pos, {
+                    radius: size,
+                    color: color,
+                    fillOpacity: 0.8
+                }).addTo(breadcrumbGroup)
+                  .bindPopup(`Time: ${new Date(data.t).toLocaleTimeString()}<br>Peak Shock: ${data.maxG}G`);
+                
+                document.getElementById('breadCount').innerText = breadcrumbGroup.getLayers().length;
+            });
+
+            // Listen for Shock Data (Top Status)
+            db.ref(`trips/${tripName}/shocks`).limitToLast(1).on('child_added', snap => {
+                document.getElementById('curG').innerText = snap.val().g + "G";
             });
         }
 
-        function deleteTrip(tripID) {
-            event.stopPropagation(); // Don't trigger the "selectTrip" click
-            if (confirm(`Delete all data for trip: ${tripID}?`)) {
-                db.ref('trips/' + tripID).remove();
-                if (document.getElementById('liveStatus').innerText.includes(tripID)) {
-                    location.reload();
-                }
-            }
-        }
+        // Safety Slider Logic
+        const slider = document.getElementById('safetySlider');
+        slider.oninput = function() {
+            document.getElementById('limitDisp').innerText = parseFloat(this.value).toFixed(2);
+            db.ref('safety_settings/max_g').set(this.value);
+        };
     </script>
 </body>
 </html>
