@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Archivault - Curator Dashboard</title>
+    <title>Archivault - Curator Dashboard v4</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -14,48 +14,41 @@
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; height: 100vh; overflow: hidden; }
         
-        /* Screen Management */
+        /* Layout */
         #selectionScreen { padding: 40px; text-align: center; }
         #dashboardScreen { display: none; height: 100vh; display: flex; flex-direction: column; }
         
-        /* Trip Cards */
-        .trip-card { background: #1e293b; padding: 20px; border-radius: 12px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #334155; }
-        .trip-card:hover { border-color: #22d3ee; }
-        .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; font-weight: bold; }
-        
-        /* Header */
-        header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #22d3ee; height: 50px; }
-        
-        /* Layout Containers */
         .viz-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        
         #map { flex: 3; width: 100%; background: #000; border-bottom: 1px solid #334155; }
-        
         .chart-panel { flex: 2; background: #1e293b; padding: 10px; position: relative; display: flex; flex-direction: column; }
-        .chart-controls { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9em; color: #94a3b8; }
         .chart-wrapper { flex-grow: 1; position: relative; width: 100%; }
 
-        /* Stats Bar */
-        .stats-panel { background: #0f172a; padding: 10px 20px; display: flex; gap: 20px; border-top: 1px solid #334155; height: 30px; align-items: center; }
-        
-        /* Inputs */
+        /* Controls & Headers */
+        header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #22d3ee; height: 50px; }
+        .chart-controls { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9em; color: #94a3b8; }
+        .stats-panel { background: #0f172a; padding: 10px 20px; display: flex; gap: 20px; border-top: 1px solid #334155; height: 30px; align-items: center; font-size: 0.9em; }
+
+        /* Interactive Elements */
+        .trip-card { background: #1e293b; padding: 20px; border-radius: 12px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; border: 1px solid #334155; cursor: pointer; }
+        .trip-card:hover { border-color: #22d3ee; }
         select { background: #334155; color: white; border: none; padding: 5px; border-radius: 4px; }
+        button { cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="selectionScreen">
         <h1 style="color:#22d3ee;">Archivault Logistics</h1>
-        <h3>Select a Trip to Monitor</h3>
+        <h3>Select a Trip</h3>
         <div id="tripList">Loading trips...</div>
     </div>
 
     <div id="dashboardScreen">
         <header>
-            <button onclick="location.reload()" style="background:#334155; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">← Back</button>
+            <button onclick="location.reload()" style="background:#334155; color:white; border:none; padding:8px 15px; border-radius:8px;">← Back</button>
             <h2 id="activeTripTitle" style="margin:0; font-size:1.2em;">Trip Name</h2>
             <div>
-                <span style="font-size:0.8em; color:#94a3b8;">ALERT THRESHOLD</span>
+                <span style="font-size:0.8em; color:#94a3b8;">SAFETY LIMIT</span>
                 <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5"> 
                 <span id="limitDisp" style="color:#ef4444; font-weight:bold;">1.50G</span>
             </div>
@@ -63,31 +56,30 @@
         
         <div class="viz-container">
             <div id="map"></div>
-
             <div class="chart-panel">
                 <div class="chart-controls">
-                    <span>Live Shock Data</span>
+                    <span>Live Telemetry (Shock & Temp)</span>
                     <select id="timeWindowSelector" onchange="updateTimeWindow()">
-                        <option value="1">Last 1 Minute</option>
-                        <option value="5" selected>Last 5 Minutes</option>
-                        <option value="10">Last 10 Minutes</option>
-                        <option value="0">Full History</option>
+                        <option value="1">Last 1 Min</option>
+                        <option value="5" selected>Last 5 Mins</option>
+                        <option value="0">Full Trip</option>
                     </select>
                 </div>
                 <div class="chart-wrapper">
-                    <canvas id="shockChart"></canvas>
+                    <canvas id="telemetryChart"></canvas>
                 </div>
             </div>
         </div>
 
         <div class="stats-panel">
-            <div>Current Impact: <span id="curG" style="color:#22d3ee; font-weight:bold; font-size: 1.2em;">0.00G</span></div>
-            <div style="margin-left:auto;">Logged Events: <span id="breadCount">0</span></div>
+            <div style="color:#4ade80;">Shock: <span id="curG">0.0G</span></div>
+            <div style="color:#facc15;">Temp: <span id="curTemp">0°C</span></div>
+            <div style="margin-left:auto;">Events: <span id="breadCount">0</span></div>
         </div>
     </div>
 
     <script>
-        // --- FIREBASE CONFIG ---
+        // --- FIREBASE INIT ---
         const firebaseConfig = {
             apiKey: "AIzaSyCLiWeNn7SVAs0VDpv8ST6xvplqGytnnIU",
             authDomain: "archivault-8d6ff.firebaseapp.com",
@@ -97,190 +89,215 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- GLOBAL VARIABLES ---
+        // --- GLOBAL STATE ---
         let map, driverMarker, breadcrumbGroup;
-        let chartInstance; 
-        let shockDataArray = []; // Stores {x: timestamp, y: gValue}
-        let activeTripListenerLoc = null;
-        let activeTripListenerShock = null;
+        let chartInstance;
+        let shockData = []; 
+        let tempData = [];
+        let currentSafetyLimit = 1.5;
 
-        // --- SCREEN 1: TRIP LIST ---
+        // --- TRIP LIST LOGIC ---
         db.ref('trips').on('value', (snapshot) => {
             const list = document.getElementById('tripList');
             list.innerHTML = "";
             snapshot.forEach((child) => {
                 const div = document.createElement('div');
                 div.className = "trip-card";
-                div.innerHTML = `<span onclick="startMonitoring('${child.key}')">🚛 ${child.key}</span>
-                                 <button class="delete-btn" onclick="deleteTrip('${child.key}')">✕</button>`;
+                div.innerHTML = `<span>🚛 ${child.key}</span>
+                                 <button style="color:#ef4444; background:none; border:none;" onclick="deleteTrip('${child.key}')">✕</button>`;
+                div.onclick = (e) => { if(e.target.tagName !== 'BUTTON') startMonitoring(child.key) };
                 list.appendChild(div);
             });
         });
 
         function deleteTrip(name) {
-            if(confirm("Delete trip data for " + name + "?")) db.ref('trips/' + name).remove();
+            if(confirm("Delete " + name + "?")) db.ref('trips/' + name).remove();
         }
 
-        // --- SCREEN 2: MONITORING ---
+        // --- MONITORING LOGIC ---
         function startMonitoring(tripName) {
             document.getElementById('selectionScreen').style.display = "none";
             document.getElementById('dashboardScreen').style.display = "flex";
             document.getElementById('activeTripTitle').innerText = tripName;
 
-            // 1. INITIALIZE MAP
-            if(map) { map.remove(); } // Reset map if exists
+            // 1. MAP SETUP
+            if(map) map.remove();
             map = L.map('map').setView([0, 0], 2);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             breadcrumbGroup = L.layerGroup().addTo(map);
-            driverMarker = L.marker([0,0]).addTo(map).bindPopup("Current Location");
+            driverMarker = L.marker([0,0]).addTo(map).bindPopup("Driver Location");
 
-            // 2. INITIALIZE CHART
+            // 2. CHART SETUP
+            shockData = [];
+            tempData = [];
             initChart();
 
-            // 3. LISTEN FOR LOCATIONS (Map & Breadcrumbs)
-            const locRef = db.ref(`trips/${tripName}/locations`);
-            locRef.on('child_added', (snap) => {
+            // 3. LISTENERS
+            
+            // Location
+            db.ref(`trips/${tripName}/locations`).on('child_added', (snap) => {
                 const data = snap.val();
-                if(!data.lat || !data.lng) return;
-
                 const pos = [data.lat, data.lng];
-                
-                // Update Driver
                 driverMarker.setLatLng(pos);
                 map.panTo(pos);
-
-                // Add Breadcrumb
+                
                 const color = data.isViolation ? "#ef4444" : "#22d3ee";
-                const size = data.isViolation ? 8 : 4;
-                
-                L.circleMarker(pos, {
-                    radius: size,
-                    color: color,
-                    fillColor: color,
-                    fillOpacity: 0.8,
-                    stroke: false
-                }).addTo(breadcrumbGroup)
-                  .bindPopup(`Time: ${new Date(data.t).toLocaleTimeString()}<br>Shock: ${data.maxG}G`);
-                
+                L.circleMarker(pos, { radius: 4, color: color, fillOpacity: 0.8 }).addTo(breadcrumbGroup);
                 document.getElementById('breadCount').innerText = breadcrumbGroup.getLayers().length;
             });
 
-            // 4. LISTEN FOR SHOCK DATA (Graph & Stats)
-            const shockRef = db.ref(`trips/${tripName}/shocks`);
-            
-            // Clear previous data
-            shockDataArray = [];
-            
-            shockRef.on('child_added', snap => {
+            // Shock (Graph + Stats)
+            db.ref(`trips/${tripName}/shocks`).on('child_added', snap => {
                 const val = snap.val();
-                // Update Stats Text
                 document.getElementById('curG').innerText = parseFloat(val.g).toFixed(2) + "G";
-                
-                // Update Chart Data
-                const point = {
-                    x: val.t, // Timestamp
-                    y: parseFloat(val.g)
-                };
-                shockDataArray.push(point);
-                
-                // Refresh Chart
-                updateChartData();
+                shockData.push({ x: val.t, y: parseFloat(val.g) });
+                updateChart();
+            });
+
+            // Temp (Graph + Stats) - Assuming structure trips/NAME/temps
+            db.ref(`trips/${tripName}/temps`).on('child_added', snap => {
+                const val = snap.val(); // Expecting { t: timestamp, temp: value }
+                document.getElementById('curTemp').innerText = parseFloat(val.temp).toFixed(1) + "°C";
+                tempData.push({ x: val.t, y: parseFloat(val.temp) });
+                updateChart();
             });
         }
 
-        // --- CHART LOGIC ---
+        // --- ADVANCED CHART LOGIC ---
         function initChart() {
-            const ctx = document.getElementById('shockChart').getContext('2d');
-            
-            // Destroy old chart if exists to prevent memory leaks
+            const ctx = document.getElementById('telemetryChart').getContext('2d');
             if(chartInstance) chartInstance.destroy();
 
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: [{
-                        label: 'Shock (G)',
-                        data: shockDataArray,
-                        borderColor: '#22d3ee',
-                        backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                        borderWidth: 2,
-                        pointRadius: 0, // Hide points for cleaner line
-                        pointHoverRadius: 4,
-                        fill: true,
-                        tension: 0.4 // Smooth curves
-                    }]
+                    datasets: [
+                        {
+                            label: 'Shock (G)',
+                            data: shockData,
+                            yAxisID: 'yShock',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            // Dynamic Color Segment Logic
+                            segment: {
+                                borderColor: ctx => {
+                                    // If shock exceeds limit, color RED, else GREEN
+                                    return ctx.p0.parsed.y > currentSafetyLimit || ctx.p1.parsed.y > currentSafetyLimit ? '#ef4444' : '#4ade80';
+                                }
+                            },
+                            // The "Moving Head" Logic
+                            pointRadius: (ctx) => {
+                                const index = ctx.dataIndex;
+                                const count = ctx.dataset.data.length;
+                                return index === count - 1 ? 6 : 0; // Only show last point
+                            },
+                            pointBackgroundColor: '#fff'
+                        },
+                        {
+                            label: 'Temp (°C)',
+                            data: tempData,
+                            yAxisID: 'yTemp',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            // Gradient Logic (Blue -> Red)
+                            borderColor: function(context) {
+                                const chart = context.chart;
+                                const {ctx, chartArea} = chart;
+                                if (!chartArea) return;
+                                
+                                // Create gradient based on Y-axis pixels
+                                const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                gradient.addColorStop(0, '#3b82f6'); // Blue (Low)
+                                gradient.addColorStop(0.5, '#facc15'); // Yellow (Mid)
+                                gradient.addColorStop(1, '#ef4444'); // Red (High)
+                                return gradient;
+                            },
+                            // The "Moving Head" Logic
+                            pointRadius: (ctx) => {
+                                const index = ctx.dataIndex;
+                                const count = ctx.dataset.data.length;
+                                return index === count - 1 ? 6 : 0;
+                            },
+                            pointBackgroundColor: '#fff'
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: false, // Disable animation for performance on real-time
-                    interaction: {
-                        mode: 'nearest',
-                        intersect: false
-                    },
+                    animation: false,
+                    interaction: { mode: 'index', intersect: false },
                     scales: {
                         x: {
                             type: 'time',
-                            time: {
-                                unit: 'minute',
-                                displayFormats: { minute: 'HH:mm:ss' }
-                            },
+                            time: { unit: 'minute', displayFormats: { minute: 'HH:mm:ss' } },
                             grid: { color: '#334155' },
                             ticks: { color: '#94a3b8' }
                         },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#334155' },
-                            ticks: { color: '#94a3b8' },
-                            suggestedMax: 3 // Keep graph height reasonable
+                        yShock: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Shock (G)', color: '#4ade80' },
+                            grid: { color: 'rgba(74, 222, 128, 0.1)' },
+                            min: 0,
+                            suggestedMax: 5
+                        },
+                        yTemp: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Temp (°C)', color: '#facc15' },
+                            grid: { drawOnChartArea: false }, // Only show grid for left axis
+                            min: -10,
+                            max: 60
                         }
                     },
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    plugins: { legend: { display: true, labels: { color: '#fff' } } }
                 }
             });
 
-            // Start a loop to update the "sliding window" even if no data comes in
+            // Keep time window moving
             setInterval(() => {
-                if(document.getElementById('dashboardScreen').style.display === 'flex') {
-                    updateTimeWindow(); 
-                }
+                if(document.getElementById('dashboardScreen').style.display === 'flex') updateTimeWindow();
             }, 1000);
         }
 
-        function updateChartData() {
-            if(!chartInstance) return;
-            chartInstance.data.datasets[0].data = shockDataArray;
-            updateTimeWindow(); // Ensure window is correct
-            chartInstance.update('none'); // Update without animation
+        function updateChart() {
+            if(chartInstance) {
+                chartInstance.data.datasets[0].data = shockData;
+                chartInstance.data.datasets[1].data = tempData;
+                updateTimeWindow();
+                chartInstance.update('none'); // Update efficiently
+            }
         }
 
         function updateTimeWindow() {
             if(!chartInstance) return;
-            
             const minutes = parseInt(document.getElementById('timeWindowSelector').value);
             const now = Date.now();
-
+            
             if (minutes === 0) {
-                // Show All
                 delete chartInstance.options.scales.x.min;
                 delete chartInstance.options.scales.x.max;
             } else {
-                // Sliding Window (Current Time - X minutes)
                 chartInstance.options.scales.x.min = now - (minutes * 60 * 1000);
                 chartInstance.options.scales.x.max = now;
             }
             chartInstance.update('none');
         }
 
-        // --- SETTINGS ---
+        // --- SLIDER LOGIC ---
         const slider = document.getElementById('safetySlider');
         slider.oninput = function() {
-            document.getElementById('limitDisp').innerText = parseFloat(this.value).toFixed(2) + "G";
+            currentSafetyLimit = parseFloat(this.value);
+            document.getElementById('limitDisp').innerText = currentSafetyLimit.toFixed(2) + "G";
+            
+            // Save to DB
             db.ref('safety_settings/max_g').set(this.value);
+            
+            // Force Chart Redraw to update Red/Green segments
+            if(chartInstance) chartInstance.update();
         };
     </script>
 </body>
