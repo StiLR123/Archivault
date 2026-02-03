@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        /* DASHBOARD LAYOUT - NO SCROLLING */
+        /* DASHBOARD LAYOUT - ZERO SCROLL */
         * { box-sizing: border-box; }
         body { 
             font-family: 'Segoe UI', sans-serif; 
@@ -20,7 +20,7 @@
             flex-direction: column;
         }
 
-        /* WARNING OVERLAY (Red Screen) */
+        /* WARNING OVERLAY */
         #warningOverlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: #ef4444; color: white; z-index: 9999; 
@@ -33,8 +33,8 @@
         .app-grid {
             flex: 1;
             display: grid;
-            grid-template-rows: auto 2fr 1fr auto; /* Rows: Input | G-Force | Temp | Button */
-            grid-template-columns: 1fr; /* Single column stack */
+            grid-template-rows: auto 2fr 1fr auto; 
+            grid-template-columns: 1fr; 
             gap: 15px;
             padding: 20px;
             max-width: 600px;
@@ -55,15 +55,22 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
-        .header { display: flex; width: 100%; }
+        /* HEADER INPUTS */
+        .header { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            width: 100%; 
+        }
         input[type=text] { 
-            width: 100%; padding: 15px; border-radius: 12px; border: none; 
+            width: 100%; padding: 12px; border-radius: 12px; border: none; 
             background: #334155; color: white; text-align: center; font-size: 1.1rem;
         }
+        input::placeholder { color: #94a3b8; }
 
         /* G-FORCE (Primary Display) */
         .shock-panel { background: #1e293b; border: 2px solid #334155; }
-        .val-large { font-size: 5rem; font-weight: 800; color: #22d3ee; margin: 10px 0; }
+        .val-large { font-size: 5rem; font-weight: 800; color: #22d3ee; margin: 5px 0; }
         .label-small { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
 
         /* TEMP & STATUS */
@@ -78,7 +85,7 @@
         /* FOOTER BUTTON */
         .footer { width: 100%; }
         button { 
-            width: 100%; padding: 22px; border-radius: 16px; 
+            width: 100%; padding: 20px; border-radius: 16px; 
             background: #22d3ee; border: none; font-weight: 900; 
             color: #0f172a; font-size: 1.3rem; cursor: pointer;
             box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
@@ -98,11 +105,12 @@
 
     <div class="app-grid">
         <div class="header">
-            <input type="text" id="tripName" placeholder="Trip Name (e.g., Box_4)">
+            <input type="text" id="tripName" placeholder="Trip ID (e.g. Box_1)">
+            <input type="text" id="artifactName" placeholder="Artifact (e.g. Ming Vase)">
         </div>
 
         <div class="widget shock-panel">
-            <span class="label-small">Current Impact</span>
+            <span class="label-small">Impact Load</span>
             <span id="liveVal" class="val-large">0.00G</span>
             <span id="thresholdDisplay" style="font-size: 0.9rem; color: #64748b;">Max Allowed: 1.50G</span>
         </div>
@@ -155,7 +163,7 @@
         let lastGPSUpload = Date.now();
         let isBeeping = false;
 
-        // --- 1. SETTINGS SYNC (Every 60s) ---
+        // --- 1. SETTINGS SYNC ---
         function syncThreshold() {
             db.ref('safety_settings/max_g').once('value').then(snap => {
                 if(snap.exists()) {
@@ -167,7 +175,7 @@
         syncThreshold();
         setInterval(syncThreshold, 60000);
 
-        // --- 2. ALERT SYSTEM (Audio + Visual) ---
+        // --- 2. ALERT SYSTEM ---
         function triggerBeep(val) {
             if (isBeeping) return;
             isBeeping = true;
@@ -176,10 +184,8 @@
             document.getElementById('violationVal').innerText = val.toFixed(2) + "G";
             overlay.style.display = "flex";
             
-            // Play sound (requires initial user interaction to be unlocked)
             document.getElementById('beep').play().catch(() => {});
 
-            // Hide after 0.5s
             setTimeout(() => {
                 overlay.style.display = "none";
                 isBeeping = false;
@@ -195,14 +201,17 @@
 
         // --- 4. BLUETOOTH CONNECTION ---
         document.getElementById('connectBtn').addEventListener('click', async () => {
+            // Get Input Values
             const tripName = document.getElementById('tripName').value.trim().replace(/[^a-zA-Z0-9]/g, "_") || "Trip_" + Date.now();
+            const artifactName = document.getElementById('artifactName').value.trim() || "Unknown Artifact";
+            
             const btn = document.getElementById('connectBtn');
             const statusText = document.getElementById('statusText');
             
             try {
                 btn.innerText = "CONNECTING...";
                 
-                // Request Device (Only Accelerometer & Temp)
+                // Request Device
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
                     optionalServices: [ACCEL_SERVICE, TEMP_SERVICE]
@@ -215,6 +224,12 @@
                 btn.style.background = "#4ade80"; 
                 btn.style.color = "#064e3b";
                 btn.disabled = true;
+
+                // --- SAVE ARTIFACT METADATA ---
+                db.ref(`trips/${tripName}/metadata`).set({
+                    artifact: artifactName,
+                    startTime: Date.now()
+                });
 
                 // --- A. ACCELEROMETER SETUP ---
                 const accelService = await server.getPrimaryService(ACCEL_SERVICE);
@@ -231,7 +246,7 @@
                         currentTemp = e.target.value.getInt8(0);
                         document.getElementById('tempVal').innerText = currentTemp + "°C";
                     });
-                } catch(e) { console.log("Temp Service missing on this device"); }
+                } catch(e) { console.log("Temp Service missing"); }
 
                 // --- DATA HANDLER ---
                 function handleAccel(event) {
@@ -244,24 +259,23 @@
                     document.getElementById('liveVal').innerText = total.toFixed(2) + "G";
                     if (total > peakThisInterval) peakThisInterval = total;
 
-                    // Trigger Alert if needed
                     if (total > curatorLimit) triggerBeep(total);
 
                     let now = Date.now();
                     
-                    // Upload Shocks (Every 1s)
+                    // Upload Shocks (1s)
                     if (now - lastGUpload >= 1000) {
                         db.ref(`trips/${tripName}/shocks`).push({ g: total.toFixed(2), t: now });
                         lastGUpload = now;
                     }
 
-                    // Upload GPS + Temp (Every 5s)
+                    // Upload GPS + Temp (5s)
                     if (now - lastGPSUpload >= 5000) {
                         db.ref(`trips/${tripName}/locations`).push({
                             lat: lastLat, 
                             lng: lastLng, 
                             maxG: peakThisInterval.toFixed(2),
-                            temp: currentTemp,    // Logged Temp
+                            temp: currentTemp,
                             isViolation: peakThisInterval > curatorLimit,
                             t: now
                         });
