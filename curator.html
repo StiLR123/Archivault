@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Archivault - Curator Dashboard v4</title>
+    <title>Archivault - Curator Dashboard v5</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -132,11 +132,13 @@
             tempData = [];
             initChart();
 
-            // 3. LISTENERS
+            // 3. LISTENERS - UPDATED to match your Screenshot
+            // Everything is inside 'locations' (lat, lng, maxG, temp, t)
             
-            // Location
             db.ref(`trips/${tripName}/locations`).on('child_added', (snap) => {
                 const data = snap.val();
+                
+                // --- MAP UPDATES ---
                 const pos = [data.lat, data.lng];
                 driverMarker.setLatLng(pos);
                 map.panTo(pos);
@@ -144,21 +146,25 @@
                 const color = data.isViolation ? "#ef4444" : "#22d3ee";
                 L.circleMarker(pos, { radius: 4, color: color, fillOpacity: 0.8 }).addTo(breadcrumbGroup);
                 document.getElementById('breadCount').innerText = breadcrumbGroup.getLayers().length;
-            });
 
-            // Shock (Graph + Stats)
-            db.ref(`trips/${tripName}/shocks`).on('child_added', snap => {
-                const val = snap.val();
-                document.getElementById('curG').innerText = parseFloat(val.g).toFixed(2) + "G";
-                shockData.push({ x: val.t, y: parseFloat(val.g) });
-                updateChart();
-            });
+                // --- DATA PARSING ---
+                // Parse Shock (Handle string "1.06" or number)
+                const shockVal = parseFloat(data.maxG); 
+                // Parse Temp (Handle undefined case just to be safe)
+                const tempVal = data.temp !== undefined ? parseFloat(data.temp) : null;
+                const timestamp = data.t;
 
-            // Temp (Graph + Stats) - Assuming structure trips/NAME/temps
-            db.ref(`trips/${tripName}/temps`).on('child_added', snap => {
-                const val = snap.val(); // Expecting { t: timestamp, temp: value }
-                document.getElementById('curTemp').innerText = parseFloat(val.temp).toFixed(1) + "°C";
-                tempData.push({ x: val.t, y: parseFloat(val.temp) });
+                // --- GRAPH UPDATES ---
+                if (!isNaN(shockVal)) {
+                    shockData.push({ x: timestamp, y: shockVal });
+                    document.getElementById('curG').innerText = shockVal.toFixed(2) + "G";
+                }
+                
+                if (tempVal !== null && !isNaN(tempVal)) {
+                    tempData.push({ x: timestamp, y: tempVal });
+                    document.getElementById('curTemp').innerText = tempVal.toFixed(1) + "°C";
+                }
+
                 updateChart();
             });
         }
@@ -178,18 +184,16 @@
                             yAxisID: 'yShock',
                             borderWidth: 2,
                             tension: 0.4,
-                            // Dynamic Color Segment Logic
                             segment: {
                                 borderColor: ctx => {
-                                    // If shock exceeds limit, color RED, else GREEN
+                                    // Turn RED if over limit
                                     return ctx.p0.parsed.y > currentSafetyLimit || ctx.p1.parsed.y > currentSafetyLimit ? '#ef4444' : '#4ade80';
                                 }
                             },
-                            // The "Moving Head" Logic
                             pointRadius: (ctx) => {
                                 const index = ctx.dataIndex;
                                 const count = ctx.dataset.data.length;
-                                return index === count - 1 ? 6 : 0; // Only show last point
+                                return index === count - 1 ? 6 : 0; // Show only the latest dot
                             },
                             pointBackgroundColor: '#fff'
                         },
@@ -199,24 +203,21 @@
                             yAxisID: 'yTemp',
                             borderWidth: 2,
                             tension: 0.4,
-                            // Gradient Logic (Blue -> Red)
+                            // Gradient: Blue (Cold) -> Yellow -> Red (Hot)
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const {ctx, chartArea} = chart;
                                 if (!chartArea) return;
-                                
-                                // Create gradient based on Y-axis pixels
                                 const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                gradient.addColorStop(0, '#3b82f6'); // Blue (Low)
-                                gradient.addColorStop(0.5, '#facc15'); // Yellow (Mid)
-                                gradient.addColorStop(1, '#ef4444'); // Red (High)
+                                gradient.addColorStop(0, '#3b82f6'); 
+                                gradient.addColorStop(0.5, '#facc15'); 
+                                gradient.addColorStop(1, '#ef4444'); 
                                 return gradient;
                             },
-                            // The "Moving Head" Logic
                             pointRadius: (ctx) => {
                                 const index = ctx.dataIndex;
                                 const count = ctx.dataset.data.length;
-                                return index === count - 1 ? 6 : 0;
+                                return index === count - 1 ? 6 : 0; // Show only the latest dot
                             },
                             pointBackgroundColor: '#fff'
                         }
@@ -248,7 +249,7 @@
                             display: true,
                             position: 'right',
                             title: { display: true, text: 'Temp (°C)', color: '#facc15' },
-                            grid: { drawOnChartArea: false }, // Only show grid for left axis
+                            grid: { drawOnChartArea: false },
                             min: -10,
                             max: 60
                         }
@@ -268,7 +269,7 @@
                 chartInstance.data.datasets[0].data = shockData;
                 chartInstance.data.datasets[1].data = tempData;
                 updateTimeWindow();
-                chartInstance.update('none'); // Update efficiently
+                chartInstance.update('none');
             }
         }
 
@@ -292,11 +293,7 @@
         slider.oninput = function() {
             currentSafetyLimit = parseFloat(this.value);
             document.getElementById('limitDisp').innerText = currentSafetyLimit.toFixed(2) + "G";
-            
-            // Save to DB
             db.ref('safety_settings/max_g').set(this.value);
-            
-            // Force Chart Redraw to update Red/Green segments
             if(chartInstance) chartInstance.update();
         };
     </script>
