@@ -3,39 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Guard - GPS Enabled</title>
+    <title>ArcheVault - Driver Guard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; margin: 0; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #0f172a; color: white; margin: 0; padding: 20px; transition: background-color 0.3s; }
+        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 25px; border-radius: 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         .box { background: #334155; padding: 15px; border-radius: 15px; margin-bottom: 15px; }
-        input[type=text] { width: 80%; padding: 12px; border-radius: 10px; margin-top: 10px; }
-        button { padding: 15px; border-radius: 12px; background: #22d3ee; border: none; font-weight: bold; cursor: pointer; width: 100%; }
-        #warningZone { display: none; background: #ef4444; color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; font-size: 1.5em; animation: blink 0.5s infinite alternate; }
+        input[type=text] { width: 80%; padding: 12px; border-radius: 10px; border: none; margin-top: 10px; background: #475569; color: white; }
+        button { padding: 15px; border-radius: 12px; background: #22d3ee; border: none; font-weight: bold; cursor: pointer; width: 100%; color: #0f172a; font-size: 1.1em; }
+        #warningZone { display: none; background: #ef4444; color: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; font-size: 1.5em; font-weight: bold; animation: blink 0.5s infinite alternate; }
         @keyframes blink { from { opacity: 1; } to { opacity: 0.7; } }
         .alarm-active { background-color: #7f1d1d !important; }
     </style>
 </head>
 <body>
+
     <div class="container">
         <div id="warningZone">🚨 SLOW DOWN! 🚨</div>
-        <h1>Driver Guard + GPS</h1>
+        
+        <h1>ArcheVault + GPS</h1>
         <div id="status" style="color:#94a3b8; margin-bottom:10px;">Waiting for setup...</div>
         
         <div class="box">
+            <label for="tripName">Trip Identifier</label>
             <input type="text" id="tripName" placeholder="Enter Trip Name">
         </div>
 
         <div class="box">
             <small>LIVE G-FORCE</small>
             <span id="liveVal" style="font-size:2em; display:block; font-weight:bold;">0.00G</span>
+            <small id="thresholdDisplay" style="color: #94a3b8;">Limit: 1.50G</small>
         </div>
 
         <button id="connectBtn">START TRANSPORT</button>
     </div>
 
+    <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
     <script>
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCLiWeNn7SVAs0VDpv8ST6xvplqGytnnIU",
             authDomain: "archivault-8d6ff.firebaseapp.com",
@@ -48,21 +55,58 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // Application State
         let curatorLimit = 1.5;
         let lastLat = 0, lastLng = 0;
         let peakThisInterval = 0;
         let lastGUpload = Date.now();
         let lastGPSUpload = Date.now();
+        let isAlarmRunning = false;
+        const alarmSound = document.getElementById('alarmSound');
 
-        // Listen for Remote Safety Limit
-        db.ref('safety_settings/max_g').on('value', snap => { if(snap.exists()) curatorLimit = parseFloat(snap.val()); });
+        /**
+         * 1. THRESHOLD SYNC: Fetches the latest safety limit from Firebase.
+         * Runs immediately and then every 60 seconds.
+         */
+        function syncSafetyThreshold() {
+            db.ref('safety_settings/max_g').once('value').then(snap => {
+                if(snap.exists()) {
+                    curatorLimit = parseFloat(snap.val());
+                    document.getElementById('thresholdDisplay').innerText = "Limit: " + curatorLimit.toFixed(2) + "G";
+                    console.log("Settings Synced. New Limit: " + curatorLimit);
+                }
+            });
+        }
+        syncSafetyThreshold();
+        setInterval(syncSafetyThreshold, 60000);
 
-        // Watch GPS Location
+        /**
+         * 2. ALERT HANDLER: Plays sound and shows visual warning for 0.5s.
+         */
+        function triggerShockAlert() {
+            if (isAlarmRunning) return; // Prevent overlapping sounds
+
+            isAlarmRunning = true;
+            alarmSound.play().catch(e => console.log("Audio play blocked until user interaction."));
+            
+            document.body.classList.add('alarm-active');
+            document.getElementById('warningZone').style.display = "block";
+
+            // Stop alert after 500ms
+            setTimeout(() => {
+                document.body.classList.remove('alarm-active');
+                document.getElementById('warningZone').style.display = "none";
+                isAlarmRunning = false;
+            }, 500);
+        }
+
+        // GPS Breadcrumb Tracking
         navigator.geolocation.watchPosition((pos) => {
             lastLat = pos.coords.latitude;
             lastLng = pos.coords.longitude;
-        }, (err) => console.log(err), { enableHighAccuracy: true });
+        }, (err) => console.log("GPS Error: ", err), { enableHighAccuracy: true });
 
+        // Bluetooth & Monitoring Logic
         document.getElementById('connectBtn').addEventListener('click', async () => {
             const tripName = document.getElementById('tripName').value.trim().replace(/[^a-zA-Z0-9]/g, "_") || "Trip_" + Date.now();
             
@@ -83,28 +127,27 @@
                     let x = data.getInt16(0, true) / 1000;
                     let y = data.getInt16(2, true) / 1000;
                     let z = data.getInt16(4, true) / 1000;
+                    
+                    // Vector magnitude for total G-Force
                     let total = Math.sqrt(x*x + y*y + z*z);
                     
                     document.getElementById('liveVal').innerText = total.toFixed(2) + "G";
                     if (total > peakThisInterval) peakThisInterval = total;
 
-                    // Alarm Logic
+                    // CHECK FOR VIOLATION
                     if (total > curatorLimit) {
-                        document.body.classList.add('alarm-active');
-                        document.getElementById('warningZone').style.display = "block";
-                    } else {
-                        document.body.classList.remove('alarm-active');
-                        document.getElementById('warningZone').style.display = "none";
+                        triggerShockAlert();
                     }
 
                     let now = Date.now();
-                    // Upload G-Force every 1s
+                    
+                    // Upload Shocks (1s interval)
                     if (now - lastGUpload >= 1000) {
                         db.ref(`trips/${tripName}/shocks`).push({ g: total.toFixed(2), t: now });
                         lastGUpload = now;
                     }
 
-                    // Upload GPS Breadcrumb every 5s
+                    // Upload GPS & Peak G (5s interval)
                     if (now - lastGPSUpload >= 5000) {
                         db.ref(`trips/${tripName}/locations`).push({
                             lat: lastLat,
@@ -117,7 +160,9 @@
                         peakThisInterval = 0; 
                     }
                 });
-            } catch (err) { alert(err); }
+            } catch (err) { 
+                alert("Connection failed: " + err); 
+            }
         });
     </script>
 </body>
