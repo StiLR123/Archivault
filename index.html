@@ -15,12 +15,12 @@
             color: white; 
             margin: 0; 
             height: 100vh; 
-            overflow: hidden; /* Prevents scrolling */
+            overflow: hidden; 
             display: flex;
             flex-direction: column;
         }
 
-        /* WARNING OVERLAY */
+        /* WARNING OVERLAY (Red Screen) */
         #warningOverlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: #ef4444; color: white; z-index: 9999; 
@@ -33,10 +33,10 @@
         .app-grid {
             flex: 1;
             display: grid;
-            grid-template-rows: auto 1fr 1fr auto;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            padding: 15px;
+            grid-template-rows: auto 2fr 1fr auto; /* Rows: Input | G-Force | Temp | Button */
+            grid-template-columns: 1fr; /* Single column stack */
+            gap: 15px;
+            padding: 20px;
             max-width: 600px;
             margin: 0 auto;
             width: 100%;
@@ -45,57 +45,46 @@
         /* WIDGET STYLES */
         .widget { 
             background: #1e293b; 
-            border-radius: 16px; 
-            padding: 10px; 
+            border-radius: 20px; 
+            padding: 15px; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center;
             text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
-        .header { grid-column: span 2; display: flex; gap: 10px; }
+        .header { display: flex; width: 100%; }
         input[type=text] { 
-            flex: 1; padding: 12px; border-radius: 10px; border: none; 
-            background: #334155; color: white; text-align: center; font-size: 1rem;
+            width: 100%; padding: 15px; border-radius: 12px; border: none; 
+            background: #334155; color: white; text-align: center; font-size: 1.1rem;
         }
 
-        /* G-FORCE (Big) */
-        .shock-panel { grid-column: span 1; }
-        .val-large { font-size: 2.5rem; font-weight: bold; color: #22d3ee; }
-        .label-small { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
-
-        /* COMPASS (Big) */
-        .compass-panel { grid-column: span 1; position: relative; }
-        .compass-circle {
-            width: 80px; height: 80px; border: 4px solid #475569; border-radius: 50%;
-            position: relative; display: flex; justify-content: center; align-items: center;
-            background: #0f172a;
-        }
-        .compass-arrow {
-            width: 0; height: 0;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 40px solid #ef4444; /* North Pointer */
-            position: absolute; top: 10px;
-            transform-origin: bottom center;
-            transition: transform 0.2s ease-out;
-        }
-        .compass-text { position: absolute; font-size: 0.7rem; font-weight: bold; color: #94a3b8; bottom: -20px; }
+        /* G-FORCE (Primary Display) */
+        .shock-panel { background: #1e293b; border: 2px solid #334155; }
+        .val-large { font-size: 5rem; font-weight: 800; color: #22d3ee; margin: 10px 0; }
+        .label-small { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
 
         /* TEMP & STATUS */
-        .temp-panel { grid-column: span 2; flex-direction: row; justify-content: space-around; }
-        .temp-val { font-size: 1.8rem; font-weight: bold; color: #fbbf24; }
+        .temp-panel { 
+            flex-direction: row; 
+            justify-content: space-around; 
+            background: #1e293b;
+        }
+        .temp-val { font-size: 2.2rem; font-weight: bold; color: #fbbf24; }
+        .status-val { font-size: 1.2rem; font-weight: bold; color: #4ade80; }
 
         /* FOOTER BUTTON */
-        .footer { grid-column: span 2; }
+        .footer { width: 100%; }
         button { 
-            width: 100%; padding: 20px; border-radius: 16px; 
+            width: 100%; padding: 22px; border-radius: 16px; 
             background: #22d3ee; border: none; font-weight: 900; 
-            color: #0f172a; font-size: 1.2rem; cursor: pointer;
+            color: #0f172a; font-size: 1.3rem; cursor: pointer;
             box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+            text-transform: uppercase;
         }
-        button:disabled { background: #475569; color: #94a3b8; }
+        button:disabled { background: #475569; color: #94a3b8; box-shadow: none; }
 
     </style>
 </head>
@@ -113,16 +102,9 @@
         </div>
 
         <div class="widget shock-panel">
-            <span class="label-small">Impact</span>
-            <span id="liveVal" class="val-large">0.0G</span>
-            <span id="thresholdDisplay" style="font-size: 0.7rem; color: #64748b;">Max: 1.50G</span>
-        </div>
-
-        <div class="widget compass-panel">
-            <div class="compass-circle">
-                <div id="compassNeedle" class="compass-arrow"></div>
-            </div>
-            <span id="compassText" class="compass-text">N</span>
+            <span class="label-small">Current Impact</span>
+            <span id="liveVal" class="val-large">0.00G</span>
+            <span id="thresholdDisplay" style="font-size: 0.9rem; color: #64748b;">Max Allowed: 1.50G</span>
         </div>
 
         <div class="widget temp-panel">
@@ -130,9 +112,9 @@
                 <span class="label-small" style="display:block">Temp</span>
                 <span id="tempVal" class="temp-val">--°C</span>
             </div>
-            <div style="text-align:right">
+            <div style="border-left: 1px solid #334155; padding-left: 20px;">
                 <span class="label-small" style="display:block">Status</span>
-                <span id="statusText" style="color:#4ade80; font-weight:bold;">Ready</span>
+                <span id="statusText" class="status-val">Standby</span>
             </div>
         </div>
 
@@ -161,9 +143,6 @@
         const ACCEL_SERVICE = 'e95d0753-251d-470a-a062-fa1922dfa9a8';
         const ACCEL_DATA    = 'e95dca4b-251d-470a-a062-fa1922dfa9a8';
         
-        const MAG_SERVICE   = 'e95df2d8-251d-470a-a062-fa1922dfa9a8';
-        const MAG_BEARING   = 'e95d9715-251d-470a-a062-fa1922dfa9a8'; // Returns degrees (0-360)
-
         const TEMP_SERVICE  = 'e95d6100-251d-470a-a062-fa1922dfa9a8';
         const TEMP_DATA     = 'e95d9250-251d-470a-a062-fa1922dfa9a8';
 
@@ -172,24 +151,23 @@
         let lastLat = 0, lastLng = 0;
         let peakThisInterval = 0;
         let currentTemp = 0;
-        let currentBearing = 0;
         let lastGUpload = Date.now();
         let lastGPSUpload = Date.now();
         let isBeeping = false;
 
-        // --- 1. SETTINGS SYNC ---
+        // --- 1. SETTINGS SYNC (Every 60s) ---
         function syncThreshold() {
             db.ref('safety_settings/max_g').once('value').then(snap => {
                 if(snap.exists()) {
                     curatorLimit = parseFloat(snap.val());
-                    document.getElementById('thresholdDisplay').innerText = "Limit: " + curatorLimit.toFixed(2) + "G";
+                    document.getElementById('thresholdDisplay').innerText = "Max Allowed: " + curatorLimit.toFixed(2) + "G";
                 }
             });
         }
         syncThreshold();
-        setInterval(syncThreshold, 60000); // Check every minute
+        setInterval(syncThreshold, 60000);
 
-        // --- 2. ALERT SYSTEM ---
+        // --- 2. ALERT SYSTEM (Audio + Visual) ---
         function triggerBeep(val) {
             if (isBeeping) return;
             isBeeping = true;
@@ -198,8 +176,10 @@
             document.getElementById('violationVal').innerText = val.toFixed(2) + "G";
             overlay.style.display = "flex";
             
+            // Play sound (requires initial user interaction to be unlocked)
             document.getElementById('beep').play().catch(() => {});
 
+            // Hide after 0.5s
             setTimeout(() => {
                 overlay.style.display = "none";
                 isBeeping = false;
@@ -209,7 +189,7 @@
         // --- 3. GPS TRACKING ---
         navigator.geolocation.watchPosition(
             (pos) => { lastLat = pos.coords.latitude; lastLng = pos.coords.longitude; },
-            (err) => console.log(err), 
+            (err) => console.log("GPS Error:", err), 
             { enableHighAccuracy: true }
         );
 
@@ -217,20 +197,23 @@
         document.getElementById('connectBtn').addEventListener('click', async () => {
             const tripName = document.getElementById('tripName').value.trim().replace(/[^a-zA-Z0-9]/g, "_") || "Trip_" + Date.now();
             const btn = document.getElementById('connectBtn');
+            const statusText = document.getElementById('statusText');
             
             try {
                 btn.innerText = "CONNECTING...";
                 
-                // Request Device with ALL Services
+                // Request Device (Only Accelerometer & Temp)
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
-                    optionalServices: [ACCEL_SERVICE, MAG_SERVICE, TEMP_SERVICE]
+                    optionalServices: [ACCEL_SERVICE, TEMP_SERVICE]
                 });
 
                 const server = await device.gatt.connect();
-                document.getElementById('statusText').innerText = "Active";
-                document.getElementById('statusText').style.color = "#22d3ee";
-                btn.innerText = "RUNNING";
+                statusText.innerText = "Active";
+                statusText.style.color = "#22d3ee";
+                btn.innerText = "MONITORING ACTIVE";
+                btn.style.background = "#4ade80"; 
+                btn.style.color = "#064e3b";
                 btn.disabled = true;
 
                 // --- A. ACCELEROMETER SETUP ---
@@ -239,28 +222,7 @@
                 await accelChar.startNotifications();
                 accelChar.addEventListener('characteristicvaluechanged', handleAccel);
 
-                // --- B. COMPASS SETUP ---
-                try {
-                    const magService = await server.getPrimaryService(MAG_SERVICE);
-                    const magChar = await magService.getCharacteristic(MAG_BEARING);
-                    await magChar.startNotifications();
-                    magChar.addEventListener('characteristicvaluechanged', (e) => {
-                        let bearing = e.target.value.getUint16(0, true);
-                        currentBearing = bearing;
-                        
-                        // Update UI Needle Rotation
-                        // Note: transform needs to counteract bearing to point North relative to phone, 
-                        // or just show bearing. Here we rotate the needle to match the degree.
-                        document.getElementById('compassNeedle').style.transform = `rotate(${bearing}deg)`;
-                        
-                        // Update Text (N/NE/E/SE...)
-                        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-                        const index = Math.round(((bearing %= 360) < 0 ? bearing + 360 : bearing) / 45) % 8;
-                        document.getElementById('compassText').innerText = directions[index] + " " + bearing + "°";
-                    });
-                } catch(e) { console.log("Compass Service missing (Calibrate micro:bit?)"); }
-
-                // --- C. TEMPERATURE SETUP ---
+                // --- B. TEMPERATURE SETUP ---
                 try {
                     const tempService = await server.getPrimaryService(TEMP_SERVICE);
                     const tempChar = await tempService.getCharacteristic(TEMP_DATA);
@@ -269,7 +231,7 @@
                         currentTemp = e.target.value.getInt8(0);
                         document.getElementById('tempVal').innerText = currentTemp + "°C";
                     });
-                } catch(e) { console.log("Temp Service missing"); }
+                } catch(e) { console.log("Temp Service missing on this device"); }
 
                 // --- DATA HANDLER ---
                 function handleAccel(event) {
@@ -282,24 +244,24 @@
                     document.getElementById('liveVal').innerText = total.toFixed(2) + "G";
                     if (total > peakThisInterval) peakThisInterval = total;
 
+                    // Trigger Alert if needed
                     if (total > curatorLimit) triggerBeep(total);
 
                     let now = Date.now();
                     
-                    // Upload Shocks (1s)
+                    // Upload Shocks (Every 1s)
                     if (now - lastGUpload >= 1000) {
                         db.ref(`trips/${tripName}/shocks`).push({ g: total.toFixed(2), t: now });
                         lastGUpload = now;
                     }
 
-                    // Upload GPS + Temp + Bearing (5s)
+                    // Upload GPS + Temp (Every 5s)
                     if (now - lastGPSUpload >= 5000) {
                         db.ref(`trips/${tripName}/locations`).push({
                             lat: lastLat, 
                             lng: lastLng, 
                             maxG: peakThisInterval.toFixed(2),
                             temp: currentTemp,    // Logged Temp
-                            bearing: currentBearing, // Logged Direction
                             isViolation: peakThisInterval > curatorLimit,
                             t: now
                         });
@@ -310,7 +272,9 @@
 
             } catch (err) { 
                 alert("Connect Error: " + err); 
-                btn.innerText = "RETRY";
+                btn.innerText = "RETRY START";
+                statusText.innerText = "Error";
+                statusText.style.color = "#ef4444";
                 btn.disabled = false;
             }
         });
