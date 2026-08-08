@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Archivault Bluetooth
 
 Archivault Bluetooth is a two page web system that supports the safe transport of fragile archaeological artifacts.
@@ -131,3 +132,6 @@ See `LICENSE`.
 FIRST, FIRST LEGO League, and UNEARTHED are trademarks of FIRST and its partners.
 LEGO and micro:bit are trademarks of their respective owners.
 This project is independent and is not endorsed by FIRST, the LEGO Group, or the Micro:bit Educational Foundation.
+=======
+# archivault-bluetooth-extract
+>>>>>>> extracted/main
