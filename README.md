@@ -17,6 +17,10 @@ Use your own Firebase project and web server for public deployments.
 Built by Team Brickheads RollingStones and contributors.
 Mentor and code support: Leon Pienaar.
 
+## AI Disclosure
+
+Generative AI was used in the some of the code for the websites along with aiding in formatting the building instructions.
+
 ## License
 
 MIT License.
