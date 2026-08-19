@@ -1,2 +1,297 @@
-# Website index moved
-This file is a placeholder to preserve tree during move process.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ArcheVault Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        /* DASHBOARD LAYOUT - ZERO SCROLL */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #0f172a; 
+            color: white; 
+            margin: 0; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* WARNING OVERLAY */
+        #warningOverlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #ef4444; color: white; z-index: 9999; 
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+        #warningOverlay h1 { font-size: 15vw; margin: 0; }
+        #warningOverlay p { font-size: 8vw; }
+
+        /* MAIN APP CONTAINER */
+        .app-grid {
+            flex: 1;
+            display: grid;
+            grid-template-rows: auto 2fr 1fr auto; 
+            grid-template-columns: 1fr; 
+            gap: 15px;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* WIDGET STYLES */
+        .widget { 
+            background: #1e293b; 
+            border-radius: 20px; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* HEADER INPUTS */
+        .header { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            width: 100%; 
+        }
+        input[type=text] { 
+            width: 100%; padding: 12px; border-radius: 12px; border: none; 
+            background: #334155; color: white; text-align: center; font-size: 1.1rem;
+        }
+        input::placeholder { color: #94a3b8; }
+
+        /* G-FORCE (Primary Display) */
+        .shock-panel { background: #1e293b; border: 2px solid #334155; }
+        .val-large { font-size: 5rem; font-weight: 800; color: #22d3ee; margin: 5px 0; }
+        .label-small { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* TEMP & STATUS */
+        .temp-panel { 
+            flex-direction: row; 
+            justify-content: space-around; 
+            background: #1e293b;
+        }
+        .temp-val { font-size: 2.2rem; font-weight: bold; color: #fbbf24; }
+        .status-val { font-size: 1.2rem; font-weight: bold; color: #4ade80; }
+
+        /* FOOTER BUTTON */
+        .footer { width: 100%; }
+        button { 
+            width: 100%; padding: 20px; border-radius: 16px; 
+            background: #22d3ee; border: none; font-weight: 900; 
+            color: #0f172a; font-size: 1.3rem; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
+            text-transform: uppercase;
+        }
+        button:disabled { background: #475569; color: #94a3b8; box-shadow: none; }
+
+    </style>
+</head>
+<body>
+
+    <div id="warningOverlay">
+        <h1>🚨</h1>
+        <h1>SLOW DOWN</h1>
+        <p id="violationVal">0.00G</p>
+    </div>
+
+    <div class="app-grid">
+        <div class="header">
+            <input type="text" id="tripName" placeholder="Trip ID (e.g. Box_1)">
+            <input type="text" id="artifactName" placeholder="Artifact (e.g. Ming Vase)">
+        </div>
+
+        <div class="widget shock-panel">
+            <span class="label-small">Impact Load</span>
+            <span id="liveVal" class="val-large">0.00G</span>
+            <span id="thresholdDisplay" style="font-size: 0.9rem; color: #64748b;">Max Allowed: 1.50G</span>
+        </div>
+
+        <div class="widget temp-panel">
+            <div>
+                <span class="label-small" style="display:block">Temp</span>
+                <span id="tempVal" class="temp-val">--°C</span>
+            </div>
+            <div style="border-left: 1px solid #334155; padding-left: 20px;">
+                <span class="label-small" style="display:block">Status</span>
+                <span id="statusText" class="status-val">Standby</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button id="connectBtn">START MONITORING</button>
+        </div>
+    </div>
+
+    <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+    <script>
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLiWeNn7SVAs0VDpv8ST6xvplqGytnnIU",
+            authDomain: "archivault-8d6ff.firebaseapp.com",
+            databaseURL: "https://archivault-8d6ff-default-rtdb.firebaseio.com/",
+            projectId: "archivault-8d6ff",
+            storageBucket: "archivault-8d6ff.firebasestorage.app",
+            messagingSenderId: "162258741675",
+            appId: "1:162258741675:web:35e26def41f72e65a38aee"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // UUIDs for Micro:bit Services
+        const ACCEL_SERVICE = 'e95d0753-251d-470a-a062-fa1922dfa9a8';
+        const ACCEL_DATA    = 'e95dca4b-251d-470a-a062-fa1922dfa9a8';
+        
+        const TEMP_SERVICE  = 'e95d6100-251d-470a-a062-fa1922dfa9a8';
+        const TEMP_DATA     = 'e95d9250-251d-470a-a062-fa1922dfa9a8';
+
+        // State Variables
+        let curatorLimit = 1.5;
+        let lastLat = 0, lastLng = 0;
+        let peakThisInterval = 0;
+        let currentTemp = 0;
+        let lastGUpload = Date.now();
+        let lastGPSUpload = Date.now();
+        let isBeeping = false;
+
+        // --- 1. SETTINGS SYNC ---
+        function syncThreshold() {
+            db.ref('safety_settings/max_g').once('value').then(snap => {
+                if(snap.exists()) {
+                    curatorLimit = parseFloat(snap.val());
+                    document.getElementById('thresholdDisplay').innerText = "Max Allowed: " + curatorLimit.toFixed(2) + "G";
+                }
+            });
+        }
+        syncThreshold();
+        setInterval(syncThreshold, 60000);
+
+        // --- 2. ALERT SYSTEM ---
+        function triggerBeep(val) {
+            if (isBeeping) return;
+            isBeeping = true;
+
+            const overlay = document.getElementById('warningOverlay');
+            document.getElementById('violationVal').innerText = val.toFixed(2) + "G";
+            overlay.style.display = "flex";
+            
+            document.getElementById('beep').play().catch(() => {});
+
+            setTimeout(() => {
+                overlay.style.display = "none";
+                isBeeping = false;
+            }, 500);
+        }
+
+        // --- 3. GPS TRACKING ---
+        navigator.geolocation.watchPosition(
+            (pos) => { lastLat = pos.coords.latitude; lastLng = pos.coords.longitude; },
+            (err) => console.log("GPS Error:", err), 
+            { enableHighAccuracy: true }
+        );
+
+        // --- 4. BLUETOOTH CONNECTION ---
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            // Get Input Values
+            const tripName = document.getElementById('tripName').value.trim().replace(/[^a-zA-Z0-9]/g, "_") || "Trip_" + Date.now();
+            const artifactName = document.getElementById('artifactName').value.trim() || "Unknown Artifact";
+            
+            const btn = document.getElementById('connectBtn');
+            const statusText = document.getElementById('statusText');
+            
+            try {
+                btn.innerText = "CONNECTING...";
+                
+                // Request Device
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'BBC micro:bit' }],
+                    optionalServices: [ACCEL_SERVICE, TEMP_SERVICE]
+                });
+
+                const server = await device.gatt.connect();
+                statusText.innerText = "Active";
+                statusText.style.color = "#22d3ee";
+                btn.innerText = "MONITORING ACTIVE";
+                btn.style.background = "#4ade80"; 
+                btn.style.color = "#064e3b";
+                btn.disabled = true;
+
+                // --- SAVE ARTIFACT METADATA ---
+                db.ref(`trips/${tripName}/metadata`).set({
+                    artifact: artifactName,
+                    startTime: Date.now()
+                });
+
+                // --- A. ACCELEROMETER SETUP ---
+                const accelService = await server.getPrimaryService(ACCEL_SERVICE);
+                const accelChar = await accelService.getCharacteristic(ACCEL_DATA);
+                await accelChar.startNotifications();
+                accelChar.addEventListener('characteristicvaluechanged', handleAccel);
+
+                // --- B. TEMPERATURE SETUP ---
+                try {
+                    const tempService = await server.getPrimaryService(TEMP_SERVICE);
+                    const tempChar = await tempService.getCharacteristic(TEMP_DATA);
+                    await tempChar.startNotifications();
+                    tempChar.addEventListener('characteristicvaluechanged', (e) => {
+                        currentTemp = e.target.value.getInt8(0);
+                        document.getElementById('tempVal').innerText = currentTemp + "°C";
+                    });
+                } catch(e) { console.log("Temp Service missing"); }
+
+                // --- DATA HANDLER ---
+                function handleAccel(event) {
+                    let d = event.target.value;
+                    let x = d.getInt16(0, true) / 1000;
+                    let y = d.getInt16(2, true) / 1000;
+                    let z = d.getInt16(4, true) / 1000;
+                    let total = Math.sqrt(x*x + y*y + z*z);
+
+                    document.getElementById('liveVal').innerText = total.toFixed(2) + "G";
+                    if (total > peakThisInterval) peakThisInterval = total;
+
+                    if (total > curatorLimit) triggerBeep(total);
+
+                    let now = Date.now();
+                    
+                    // Upload Shocks (1s)
+                    if (now - lastGUpload >= 1000) {
+                        db.ref(`trips/${tripName}/shocks`).push({ g: total.toFixed(2), t: now });
+                        lastGUpload = now;
+                    }
+
+                    // Upload GPS + Temp (5s)
+                    if (now - lastGPSUpload >= 5000) {
+                        db.ref(`trips/${tripName}/locations`).push({
+                            lat: lastLat, 
+                            lng: lastLng, 
+                            maxG: peakThisInterval.toFixed(2),
+                            temp: currentTemp,
+                            isViolation: peakThisInterval > curatorLimit,
+                            t: now
+                        });
+                        lastGPSUpload = now;
+                        peakThisInterval = 0; 
+                    }
+                }
+
+            } catch (err) { 
+                alert("Connect Error: " + err); 
+                btn.innerText = "RETRY START";
+                statusText.innerText = "Error";
+                statusText.style.color = "#ef4444";
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
