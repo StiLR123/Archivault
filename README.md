@@ -15,8 +15,10 @@ Use your own Firebase project and web server for public deployments.
 ## Credits
 
 Built by Team Brickheads RollingStones and contributors.
+
 Mentor and code support: Leon Pienaar.
-Mentor and coach: [Sanet Pienaar](https://github.com/SanetPienaar)
+
+Mentor and lead coach: [Sanet Pienaar](https://github.com/SanetPienaar)
 
 ## AI Disclosure
 
