@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ArchiVault Building Instructions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Boldonse&family=Big+Shoulders:wght@600;700;800&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body{ padding: 0 2mm; }
+
+  .cover-wrap{ padding: 0; }
+  .eyebrow-row{ display:flex; align-items:center; margin-bottom:14px; }
+  .kicker{ font-family:'Big Shoulders',sans-serif; font-weight:700; letter-spacing:3px;
+            text-transform:uppercase; color:var(--red); font-size:12.5pt; }
+
+  .brand{ font-family:'Boldonse', sans-serif; font-size:64pt; line-height:0.95; margin:2px 0 4px 0; }
+  .brand .a{ color:var(--red); }
+  .brand .h{ color:var(--blue); }
+
+  .subtitle{ font-family:'Big Shoulders', sans-serif; font-weight:700; text-transform:uppercase;
+    letter-spacing:2px; font-size:17pt; color:var(--ink); margin:10px 0 18px 0; }
+  .lede{ font-size:10pt; color:var(--ink-soft); max-width:92%; margin-bottom:26px; }
+
+  .cover-grid{ display:flex; align-items:flex-start; margin-top:6px; }
+  .cover-left{ flex:1.15; margin-right:20px; }
+  .cover-right{ flex:1; display:flex; flex-direction:column; align-items:center; padding-top:6px; }
+
+  .wheel-cap{ font-family:'Big Shoulders',sans-serif; font-weight:800; text-transform:uppercase;
+    letter-spacing:1.1px; font-size:15pt; color:var(--ink); text-align:center; margin-top:10px; max-width:260px; }
+  .wheel-cap-2{ font-family:'Big Shoulders',sans-serif; font-weight:800; text-transform:uppercase;
+    letter-spacing:1.1px; font-size:13pt; color:var(--ink-soft); text-align:center; margin-top:0px; max-width:260px; }
+
+  .legend{ margin-top:14px; width:100%; }
+  .leg-item{ display:flex; align-items:center; margin-bottom:7px; font-size:9.3pt; color:var(--ink-soft); }
+  .leg-dot{ width:12px; height:12px; border-radius:4px; min-width:12px; margin-right:8px; }
+
+  .toc-card{ background:var(--white); border:1.4px solid var(--cream); border-radius:14px;
+    padding:16px 18px; box-shadow:4px 4px 0 var(--cream); }
+  .toc-title{ font-family:'Big Shoulders',sans-serif; font-weight:700; text-transform:uppercase;
+    letter-spacing:1.6px; color:var(--ink); font-size:11pt; margin-bottom:10px; }
+  .toc-row{ display:flex; align-items:flex-start; margin-bottom:12px; }
+  .toc-num{ font-family:'Boldonse',sans-serif; font-size:19pt; line-height:1; min-width:40px; margin-right:8px; padding-top:2px; }
+  .toc-row.r1 .toc-num{ color:var(--red); }
+  .toc-row.r2 .toc-num{ color:var(--green); }
+  .toc-row.r3 .toc-num{ color:var(--blue); }
+  .toc-h{ font-weight:700; color:var(--ink); font-size:10.6pt; margin-bottom:1px; }
+  .toc-d{ font-size:9pt; color:var(--ink-soft); }
+
+  .mat-title-row{ display:flex; align-items:baseline; margin:24px 0 4px 0; }
+  .mat-title-row .tag-block{ margin-right:12px; }
+  .mat-note{ font-size:10pt; color:var(--ink-soft); }
+
+  .footer-note{ margin-top:16px; display:flex; align-items:center; }
+  .origin{ font-size:8.6pt; color:var(--ink-soft); }
+
+  .section{ page-break-before: always; }
+
+</style>
+</head>
+<body>
+
+<div class="cover-page">
+<div class="cover-wrap">
+
+  <div class="eyebrow-row"><span class="kicker">Innovation Project</span></div>
+
+  <div class="brand"><span class="a">Archi</span><span class="h">Vault</span></div>
+  <div class="subtitle">Building Instructions</div>
+
+  <p class="lede">A step-by-step guide to building a shock-absorbing artifact transport
+  container with an integrated monitoring system.</p>
+
+  <div class="cover-grid">
+    <div class="cover-left">
+      <div class="toc-card">
+        <div class="toc-title">What you'll build</div>
+        <div class="toc-row r1">
+          <div class="toc-num">01</div>
+          <div>
+            <div class="toc-h">The Suspension System</div>
+            <div class="toc-d">A cross-over grid of cut-to-length PVC pipes and elastic bands or paracord,
+            mounted inside the outer container, that suspends the inner container in mid-air to absorb shock.</div>
+          </div>
+        </div>
+        <div class="toc-row r2">
+          <div class="toc-num">02</div>
+
+          <div>
+            <div class="toc-h">The Inner Container</div>
+            <div class="toc-d">A snug two-piece cardboard or polymer box, cushioned with sponge padding,
+            silica gel packets, and humidity indicator strips, sized to the artifact with proper packing allowances.</div>
+          </div>
+
+        </div>
+        <div class="toc-row r3">
+          <div class="toc-num">03</div>
+          <div>
+            <div class="toc-h">The Monitoring System</div>
+            <div class="toc-d">A Micro:bit V2, Bluetooth link, web app, and Firebase database that
+            track shock, temperature and location in real time and alert you before damage happens.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cover-right">
+      <svg viewBox="0 0 200 200" width="230" height="230" xmlns="http://www.w3.org/2000/svg"><path d="M 115.98,9.40 A 92,92 0 0 1 186.45,131.47 L 154.50,119.84 A 58,58 0 0 0 110.07,42.88 Z" fill="#C41E2A" opacity="1" stroke="#2A1712" stroke-width="2"/><path d="M 170.48,159.14 A 92,92 0 0 1 29.52,159.14 L 55.57,137.28 A 58,58 0 0 0 144.43,137.28 Z" fill="#279140" opacity="1" stroke="#2A1712" stroke-width="2"/><path d="M 13.55,131.47 A 92,92 0 0 1 84.02,9.40 L 89.93,42.88 A 58,58 0 0 0 45.50,119.84 Z" fill="#2E75C4" opacity="1" stroke="#2A1712" stroke-width="2"/><circle cx="100" cy="100" r="52" fill="#2A1712"/><text x="100" y="100" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="21" fill="#FCFAF5" letter-spacing="1">BUILD</text><text x="100" y="119" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="21" fill="#F5B400" letter-spacing="1">GUIDE</text></svg>
+
+      <div class="wheel-cap">Three build stages:</div>
+      <div class="wheel-cap-2">suspension, inner&nbsp;container and monitoring.</div>
+
+    </div>
+  </div>
+
+  <div class="mat-title-row">
+    <span class="tag-block tag-red">Materials Needed</span>
+    <span class="mat-note">Gather everything below before you start.</span>
+  </div>
+
+  <div class="mat-grid">
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="9" width="19" height="6" rx="3"/><ellipse cx="4.2" cy="12" rx="1.7" ry="3"/></svg></span> 20&ndash;25&nbsp;mm PVC pipes</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-4.2 9 4.2-9 4-9-4z"/><path d="M3 8v8.2l9 4 9-4V8"/><path d="M12 12v8.2"/></svg></span> Cooler box, or any other large, airtight container, to use as the outer container</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="1.2"/><path d="M3 5.5l9 6 9-6"/></svg></span> ~1/2&nbsp;m&sup2; non-acidic 4-ply corrugated cardboard</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5.2"/><path d="M3.5 12h3.3M17.2 12h3.3"/></svg></span> Elastic bands or paracord</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.7" height="7.7" rx="1.2"/><rect x="13.3" y="3" width="7.7" height="7.7" rx="1.2"/><rect x="3" y="13.3" width="7.7" height="7.7" rx="1.2"/><rect x="13.3" y="13.3" width="7.7" height="7.7" rx="1.2"/></svg></span> Sponges (4&ndash;8, depending on artifact size)</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.3c3 4 6.2 7.6 6.2 11.2a6.2 6.2 0 01-12.4 0c0-3.6 3.2-7.2 6.2-11.2z"/></svg></span> Silica gel packets (5&ndash;15)</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="19" rx="2"/><path d="M9 9h6M9 14h6"/></svg></span> Humidity indicator strips</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8" cy="9.3" r="1"/><circle cx="16" cy="9.3" r="1"/><path d="M7 14.3a5 5 0 0010 0"/></svg></span> Micro:bit V2</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7.5" width="17" height="9" rx="1.6"/><rect x="19.5" y="10.2" width="2.3" height="3.6" rx="0.6"/><rect x="4.3" y="9.6" width="3.4" height="4.8" fill="#2A1712" stroke="none" rx="0.5"/></svg></span> AA Batteries for Microbit</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.3"/><circle cx="10" cy="10" r="3"/><path d="M10 17.3l7 4.2"/></svg></span> Fire-resistant tape (for the Micro:bit)</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="7.6"/><path d="M11 5.4V2.4M8.4 2.4h5.2"/><path d="M15.3 9l4.7-4.7"/><path d="M18 3l2 2"/></svg></span> Measuring tape</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 3.2l8.6 8.6"/><path d="M13 6.6l3.6-3 2.8 2.8-3 3.6"/><path d="M11.8 12.2l-2.6 6.6-6-6 6.6-2.6z"/></svg></span> Pipe cutter or hacksaw</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L17.5 6.5a2.8 2.8 0 000-4L4 15.8v4.2h4z"/></svg></span> Knife</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9.3" width="20" height="6.3" rx="1.2"/><path d="M6 9.3v3M9.3 9.3v2M12.7 9.3v3M16 9.3v2"/></svg></span> Ruler</div>
+
+    <div class="mat-item"><span class="mat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.3"/><circle cx="12" cy="12" r="3.6"/></svg></span> Tape</div>
+  </div>
+
+  <div class="stud-rule" style="margin-top:20px;"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+  <div class="footer-note"><span class="origin">Formatted building guide. Content and measurements as documented by team Brickheads: Rollingstones</span></div>
+
+</div>
+</div>
+
+
+<div class="section" id="part1">
+<div class="part-banner red">
+      <div class="part-eyebrow">Build Stage 01 &middot; Part 1</div>
+      <div class="part-title">The Suspension&nbsp;System</div>
+
+      <div class="part-wheel"><svg viewBox="0 0 200 200" width="92" height="92" xmlns="http://www.w3.org/2000/svg"><path d="M 115.98,9.40 A 92,92 0 0 1 186.45,131.47 L 154.50,119.84 A 58,58 0 0 0 110.07,42.88 Z" fill="#C41E2A" opacity="1" stroke="#2A1712" stroke-width="2"/><path d="M 170.48,159.14 A 92,92 0 0 1 29.52,159.14 L 55.57,137.28 A 58,58 0 0 0 144.43,137.28 Z" fill="#EEE1C4" opacity="0.55" stroke="#2A1712" stroke-width="2"/><path d="M 13.55,131.47 A 92,92 0 0 1 84.02,9.40 L 89.93,42.88 A 58,58 0 0 0 45.50,119.84 Z" fill="#EEE1C4" opacity="0.55" stroke="#2A1712" stroke-width="2"/><circle cx="100" cy="100" r="52" fill="#2A1712"/><text x="100" y="95" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="17" fill="#FCFAF5" letter-spacing="1">BUILD</text><text x="100" y="114" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="17" fill="#F5B400" letter-spacing="1">GUIDE</text></svg></div>
+    </div>
+
+<div class="blueprint-frame">
+  <img src="assets/blueprint.jpg" style="max-height:473px;">
+  <div class="blueprint-cap">Suspension System Reference Blueprint</div>
+  <div class="blueprint-sub">Our own cross-over pipe layout. Every pipe length is labelled in millimetres.</div>
+  <div class="blueprint-sub-2">Your own container will need its own measurements &mdash; see Step 3.</div>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge">1</span><span class="h-step">Measure Your Outer Container</span></div>
+  <ol>
+    <li><strong>Determine the internal dimensions</strong> of your outer container: length (L), width (W), and depth (D).
+    Measure from inside wall to inside wall.</li>
+    <li><strong>Decide where the pipes will sit.</strong> They can rest on the rim (if the container has a lip) or on
+    brackets mounted inside. For a typical suspension, pipes are placed across the top opening, but they can also be
+    positioned lower using supports.</li>
+    <li><strong>Consider the height</strong> at which you want the inner container to hang. The elastic bands will
+    attach from the pipes to the inner container, so the pipes need to sit above the inner container's attachment points.</li>
+  </ol>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge">2</span><span class="h-step">Plan the Pipe Layout</span></div>
+  <p>The reference blueprint uses a <mark>cross-over formation</mark>, shown with red and green lines. This means two
+  sets of pipes intersecting, like a grid or an X pattern. You can choose any pattern that provides multiple attachment
+  points for the elastic bands. Common layouts include:</p>
+  <ul>
+    <li><strong>Parallel grid:</strong> several pipes running lengthwise and several crosswise, forming a lattice.</li>
+    <li><strong>Diagonal cross:</strong> two or more pipes placed diagonally across the container, crossing at the centre.</li>
+    <li><strong>Radial:</strong> pipes radiating out from the centre.</li>
+  </ul>
+  <p>For a simple and effective suspension, use two sets of parallel pipes, one set along the length and one
+  along the width, so they intersect and form a grid. The number of pipes depends on the size of your container
+  and the load; for example, you might use 3 pipes lengthwise and 3 crosswise.</p>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge">3</span><span class="h-step">Calculate Pipe Lengths</span></div>
+  <p>For each pipe, measure the distance between the points where it will rest. If a pipe rests on the rim, its length
+  equals the internal dimension (L or W) plus any overhang if it sits on ledges. For diagonal pipes, use the
+  <mark>Pythagorean theorem</mark>: diagonal&nbsp;=&nbsp;&radic;(L&sup2;&nbsp;+&nbsp;W&sup2;). Make sure each pipe is
+  long enough to span the gap, with a little extra if it needs to sit on supports.</p>
+
+  <div class="callout">
+    <span class="lbl">From the reference blueprint</span>
+    That build uses seven pipe lengths: <strong>634, 270, 871, 546, 502, 436,</strong> and <strong>228&nbsp;mm</strong>,
+    each cut for a different pipe in that particular design. For your own container, calculate your own numbers
+    using the method above. They will differ from these.
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge">4</span><span class="h-step">Cut the PVC Pipes</span></div>
+  <ol>
+    <li>Mark each pipe at its calculated length using a marker.</li>
+    <li>Cut squarely using a PVC pipe cutter or hacksaw. A pipe cutter gives a cleaner cut.</li>
+    <li>After cutting, <strong>deburr the ends</strong> with sandpaper or a deburring tool to remove sharp edges that
+    could damage elastic bands or scratch the container.</li>
+  </ol>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge">5</span><span class="h-step">Arrange the Pipes Inside the Container</span></div>
+  <ol>
+    <li>Place the cut pipes inside the container according to your planned layout. They should rest securely on the
+    rim or supports. If the container has a smooth rim, add adhesive felt pads to prevent slipping.</li>
+    <li>Make sure the pipes are level and spaced evenly. For a grid layout, lay the first set (e.g. lengthwise) and
+    then the second set (crosswise) on top of them to create an intersection. The pipes can simply rest on each other;
+    they don't need to be fastened unless the load will shift them.</li>
+  </ol>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge">6</span><span class="h-step">Attach Elastic Bands to Suspend the Inner Container</span></div>
+  <ol>
+    <li><strong>Attach one end of each band</strong> to a pipe. Loop the band around the pipe and tie it, or use a
+    hook if the band has one. Make sure the band is secure and won't slip.</li>
+    <li><strong>Attach the other end</strong> to the inner container. Repeat for all bands, distributing them evenly
+    around the container. The number of bands you need depends on the weight; more bands provide more support.</li>
+    <li><strong>Adjust the tension</strong> so the inner container is suspended without touching the bottom or sides
+    of the outer container. You may need to adjust band lengths or positions to get this right.</li>
+  </ol>
+
+  <div class="callout">
+    <span class="lbl">Weight rating</span>
+    Standard elastic bands suit lighter artifacts. For heavier pieces, swap in paracord: our tests showed a
+    paracord suspension safely supports artifacts up to 7 pounds (3&nbsp;kg).
+  </div>
+</div>
+
+</div>
+
+
+<div class="section" id="part2">
+<div class="part-banner green">
+
+      <div class="part-eyebrow">Build Stage 02 &middot; Part 2</div>
+      <div class="part-title">The Inner&nbsp;Container</div>
+
+      <div class="part-wheel"><svg viewBox="0 0 200 200" width="92" height="92" xmlns="http://www.w3.org/2000/svg"><path d="M 115.98,9.40 A 92,92 0 0 1 186.45,131.47 L 154.50,119.84 A 58,58 0 0 0 110.07,42.88 Z" fill="#EEE1C4" opacity="0.55" stroke="#2A1712" stroke-width="2"/><path d="M 170.48,159.14 A 92,92 0 0 1 29.52,159.14 L 55.57,137.28 A 58,58 0 0 0 144.43,137.28 Z" fill="#279140" opacity="1" stroke="#2A1712" stroke-width="2"/><path d="M 13.55,131.47 A 92,92 0 0 1 84.02,9.40 L 89.93,42.88 A 58,58 0 0 0 45.50,119.84 Z" fill="#EEE1C4" opacity="0.55" stroke="#2A1712" stroke-width="2"/><circle cx="100" cy="100" r="52" fill="#2A1712"/><text x="100" y="95" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="17" fill="#FCFAF5" letter-spacing="1">BUILD</text><text x="100" y="114" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="17" fill="#F5B400" letter-spacing="1">GUIDE</text></svg></div>
+    </div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge green">1</span><span class="h-step">Measure the Cardboard or Polymer Pieces</span></div>
+  <ol>
+    <li><strong>Obtain the dimensions of the objects.</strong> Photographs that include measurements can help, but
+    seeing and examining the objects in person is important.</li>
+    <li><strong>Add packing allowances.</strong> Add a minimum of <mark>two inches on all sides</mark>, including the
+    top and bottom, between the object and the box to allow space for packing material.
+      <ul class="sub">
+        <li>When packing multiple objects in one box, leave space between objects for packing material.</li>
+        <li>Objects made of similar material can be grouped together if properly spaced.</li>
+        <li>Creating a list of objects grouped by size and material type can help you estimate box sizes.</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge green">2</span><span class="h-step">Choose or Construct the Box</span></div>
+  <div class="two-col">
+    <div class="colA">
+      <div class="tag-block tag-gold" style="font-size:9pt; padding:5px 12px;">Option A</div>
+      <p style="margin-top:8px;"><strong>Choose standard boxes</strong> if using standard cardboard boxes or (if you have the money) polyethylene/polypropylene containers. Select sizes that closely match the dimensions calculated in
+      Step&nbsp;1. It's better to choose a box that's slightly too large than one that's too small.</p>
+    </div>
+    <div class="colB">
+      <div class="tag-block tag-green" style="font-size:9pt; padding:5px 12px;">Option B</div>
+      <p style="margin-top:8px;"><strong>Or construct a custom two-piece box</strong>, consisting of a bottom and a
+      separate lid:</p>
+      <ul class="sub" style="margin-top:0;">
+        <li>Use a knife and a metal ruler to cut corrugated cardboard or plastic.</li>
+        <li>Place the ruler along the cutting line as a guide. Score the base first, then cut through all layers.</li>
+        <li>Construct the bottom before the lid to ensure a snug fit.</li>
+        <li>Score (without cutting) the material along the fold lines.</li>
+        <li>Tape the corners with normal tape, or preferably reinforced strapping tape.</li>
+        <li>Make a pattern or template before cutting to ensure accuracy.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge green">3</span><span class="h-step">Make the Lid</span></div>
+  <ol>
+    <li>Place the bottom of the box on a sheet of cardboard or plastic and trace its outline.</li>
+    <li>Add two inches on each side to form the lip of the lid.</li>
+    <li>Score along the fold lines to shape the lip.</li>
+    <li>Tape the corners with tape or reinforced strapping tape.</li>
+  </ol>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge green">4</span><span class="h-step">Add Sponge Cushioning, Silica Gel, and Humidity Indicators</span></div>
+  <ol>
+    <li>Cut the sponges into smaller pieces until they almost fill the inner container.</li>
+    <li>Depending on the humidity of the surrounding environment, add between <strong>5 and 15 silica gel packets</strong>
+    and mix them in with the sponge pieces so they're scattered throughout the inner container.</li>
+    <li>Tuck one or two humidity indicator strips in where you can see them without opening the box, so you can
+    check moisture levels at a glance.</li>
+    <li>Place the artifact in the centre of the inner container, so sponge cushioning surrounds it on all sides.</li>
+  </ol>
+  <div class="callout green">
+    <span class="lbl">Result</span>
+    The artifact sits centred in the box, cushioned by sponge on every side, with silica packets and a humidity
+    indicator strip tracking moisture levels throughout transit.
+  </div>
+</div>
+
+</div>
+
+
+<div class="section" id="part3">
+<div class="part-banner blue">
+
+      <div class="part-eyebrow">Build Stage 03 &middot; Part 3</div>
+      <div class="part-title">The Monitoring&nbsp;System</div>
+
+      <div class="part-wheel"><svg viewBox="0 0 200 200" width="92" height="92" xmlns="http://www.w3.org/2000/svg"><path d="M 115.98,9.40 A 92,92 0 0 1 186.45,131.47 L 154.50,119.84 A 58,58 0 0 0 110.07,42.88 Z" fill="#EEE1C4" opacity="0.55" stroke="#2A1712" stroke-width="2"/><path d="M 170.48,159.14 A 92,92 0 0 1 29.52,159.14 L 55.57,137.28 A 58,58 0 0 0 144.43,137.28 Z" fill="#EEE1C4" opacity="0.55" stroke="#2A1712" stroke-width="2"/><path d="M 13.55,131.47 A 92,92 0 0 1 84.02,9.40 L 89.93,42.88 A 58,58 0 0 0 45.50,119.84 Z" fill="#2E75C4" opacity="1" stroke="#2A1712" stroke-width="2"/><circle cx="100" cy="100" r="52" fill="#2A1712"/><text x="100" y="95" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="17" fill="#FCFAF5" letter-spacing="1">BUILD</text><text x="100" y="114" text-anchor="middle" font-family="Big Shoulders" font-weight="700" font-size="17" fill="#F5B400" letter-spacing="1">GUIDE</text></svg></div>
+    </div>
+
+<div class="chip-row">
+  <a class="chip" href="https://github.com/StiLR123/Archivault/tree/main/docs/website"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M10.3 6.6l1-.9a3.9 3.9 0 015.5 5.5l-1 1"/><path d="M13.7 17.4l-1 .9a3.9 3.9 0 01-5.5-5.5l1-1"/></svg> All monitoring-system code: github.com/StiLR123/Archivault</a>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge blue">1</span><span class="h-step">Prepare the Hardware</span></div>
+  <ol>
+    <li>Use a <strong>Micro:bit V2</strong> with a battery pack or USB power supply.</li>
+    <li><strong>Wrap the Micro:bit in fire-resistant tape</strong> for extra protection, then place it
+    <strong>inside the artifact container</strong>, ideally mounted on the artifact or a cushioned platform, so it
+    measures actual shock on the object rather than just the container.</li>
+    <li>If you want to track environmental conditions, make sure your Micro:bit has access to its light, temperature,
+    and accelerometer sensors (the Micro:bit V2 has all of these built in).</li>
+  </ol>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge blue">2</span><span class="h-step">Set Up the Micro:bit Code</span></div>
+  <ol>
+    <li>Use MakeCode or the uploaded Micro:bit scripts.</li>
+    <li><strong>Make sure your code reads from:</strong>
+      <ul class="sub">
+        <li>Accelerometer (X, Y, Z axes)</li>
+        <li>Temperature sensor</li>
+        <li>Light sensor (optional)</li>
+      </ul>
+    </li>
+    <li><strong>Add code to send data via Bluetooth</strong> using these UUIDs in your web app:</li>
+  </ol>
+
+  <div class="console">
+    <span class="lbl">Bluetooth service &amp; characteristic UUIDs</span>
+    <table>
+      <tr><td class="k">Accelerometer service</td><td class="v">e95d0753-251d-470a-a062-fa1922dfa9a8</td></tr>
+      <tr><td class="k">Accelerometer data</td><td class="v">e95dca4b-251d-470a-a062-fa1922dfa9a8</td></tr>
+      <tr><td class="k">Temperature service</td><td class="v">e95d6100-251d-470a-a062-fa1922dfa9a8</td></tr>
+      <tr><td class="k">Temperature data</td><td class="v">e95d9250-251d-470a-a062-fa1922dfa9a8</td></tr>
+    </table>
+  </div>
+  <p>Make sure the Micro:bit code <strong>starts notifications</strong> for these characteristics, so it pushes data
+  to your browser app continuously.</p>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge blue">3</span><span class="h-step">Set Up the Web App</span></div>
+  <ol>
+    <li><strong>Host the app.</strong> Use GitHub Pages or any other website-hosting service to host both the
+    <span class="mono">index.html</span> and <span class="mono">curator.html</span> files found in the repository.</li>
+    <li><strong>Use the main page to:</strong>
+      <ul class="sub">
+        <li>Enter a Trip ID (e.g. <span class="mono">Box_1</span>)</li>
+        <li>Enter an Artifact name (e.g. <span class="mono">Ming Vase</span>)</li>
+        <li>Click <strong>Start Monitoring</strong> to connect to your Micro:bit via Bluetooth</li>
+      </ul>
+    </li>
+    <li><strong>Once connected, the web app will:</strong>
+      <ul class="sub">
+        <li>Display real-time impact (G) values</li>
+        <li>Display temperature</li>
+        <li>Send alerts if the shock exceeds the threshold</li>
+      </ul>
+    </li>
+  </ol>
+  <div class="chip-row">
+    <a class="chip" href="https://docs.github.com/en/pages"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M10.3 6.6l1-.9a3.9 3.9 0 015.5 5.5l-1 1"/><path d="M13.7 17.4l-1 .9a3.9 3.9 0 01-5.5-5.5l1-1"/></svg> GitHub Pages hosting guide: docs.github.com/en/pages</a>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge blue">4</span><span class="h-step">Set Up the Firebase Database</span></div>
+  <ol>
+    <li>Create a Firebase project at firebase.google.com.</li>
+    <li>Navigate to <strong>Realtime Database</strong> and create a new database.</li>
+    <li>Copy your Firebase config keys (API key, authDomain, databaseURL, etc.) into the
+    <span class="mono">firebaseConfig</span> object in <span class="mono">index.html</span>.</li>
+    <li><strong>Once configured</strong>, the web app automatically creates a new trip under
+    <span class="mono">trips/&lt;Trip_ID&gt;</span> whenever you start monitoring, logging:
+      <ul class="sub">
+        <li><strong>Metadata:</strong> artifact name, start time</li>
+        <li><strong>Shocks:</strong> recorded every second</li>
+        <li><strong>Locations:</strong> GPS and temperature, recorded every 5 seconds</li>
+      </ul>
+    </li>
+  </ol>
+  <div class="chip-row">
+    <a class="chip" href="https://firebase.google.com"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2A1712" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M10.3 6.6l1-.9a3.9 3.9 0 015.5 5.5l-1 1"/><path d="M13.7 17.4l-1 .9a3.9 3.9 0 01-5.5-5.5l1-1"/></svg> Create a project: firebase.google.com</a>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge blue">5</span><span class="h-step">Use the Curator Dashboard</span></div>
+  <ol>
+    <li>Open <span class="mono">curator.html</span> in a browser. It reads data directly from the Firebase database
+    you set up in Step 4.</li>
+    <li><strong>From the dashboard you can:</strong>
+      <ul class="sub">
+        <li>View all trips uploaded to Firebase</li>
+        <li>Select a trip to see a map of its route</li>
+        <li>View charts of shock and temperature over time</li>
+        <li>Adjust the safety limit, which updates the live monitoring system</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num-badge blue">6</span><span class="h-step">Test Your Setup</span></div>
+  <ol>
+    <li>Run the Micro:bit and web app while gently moving the container to see the impact values update.</li>
+    <li>Check that alerts appear if you exceed the G-force threshold.</li>
+    <li>Confirm the trip appears in the curator dashboard and that all telemetry is logged correctly.</li>
+    <li>Adjust the elastic bands or padding as needed to reduce shock to the artifact.</li>
+  </ol>
+  <div class="callout blue">
+    <span class="lbl">You're done</span>
+    Once alerts fire correctly and telemetry logs cleanly to the curator dashboard, the ArchiVault container is ready
+    to protect and monitor an artifact in transit.
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>
