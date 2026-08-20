@@ -1,11 +1,12 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it."
+message: "If you distribute this software or project, please cite it."
 title: "Archivault"
-type: project
+type: project, software
 authors:
   - name: "Brickheads RollingStones Team"
   - family-names: "Pienaar"
     given-names: "Leon", "Sanet"
+  - name: "Stiaan le Roux"
 license: MIT
 repository-code: "https://github.com/StiLR123/Archivault"
 abstract: "Instructions on building a suspension system and container that protects artifacts from mechanical damage during transport. Along with a monitoring system that logs transport telemetry for fragile archaeological artifacts, using sensors on a BBC micro:bit v2."
@@ -14,4 +15,3 @@ keywords:
   - "UNEARTHED"
   - "micro:bit"
   - "archaeology"
-  - "conservation"
