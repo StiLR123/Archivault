@@ -40,13 +40,13 @@ The reference blueprint uses a "cross-over formation," shown with red and green 
 - **Diagonal cross:** two or more pipes placed diagonally across the container, crossing at the centre.
 - **Radial:** pipes radiating out from the centre.
 
-For a simple and effective suspension, use two sets of parallel pipes — one set along the length and one along the width — so they intersect and form a grid. The number of pipes depends on the size of your container and the load; for example, you might use 3 pipes lengthwise and 3 crosswise.
+For a simple and effective suspension, use two sets of parallel pipes, one set along the length and one along the width, so they intersect and form a grid. The number of pipes depends on the size of your container and the load; for example, you might use 3 pipes lengthwise and 3 crosswise.
 
 ### Step 3: Calculate Pipe Lengths
 
 For each pipe, measure the distance between the points where it will rest. If a pipe rests on the rim, its length equals the internal dimension (L or W) plus any overhang if it sits on ledges. For diagonal pipes, use the Pythagorean theorem: diagonal = √(L² + W²). Make sure each pipe is long enough to span the gap, with a little extra if it needs to sit on supports.
 
-> **From the reference blueprint:** That build uses seven pipe lengths: 634, 270, 871, 546, 502, 436, and 228 mm, each cut for a different pipe in that particular design. For your own container, calculate your own numbers using the method above — they will differ from these.
+> **From the reference blueprint:** That build uses seven pipe lengths: 634, 270, 871, 546, 502, 436, and 228 mm, each cut for a different pipe in that particular design. For your own container, calculate your own numbers using the method above, they will differ from these.
 
 ### Step 4: Cut the PVC Pipes
 
