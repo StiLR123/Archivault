@@ -6,45 +6,47 @@
 
 - 20–25 mm PVC pipes
 - Cooler box, or any other large, airtight container, to use as the outer container
-- Around 1/2 m² of either non-acidic 4-ply cardboard or polyethylene/polypropylene (amount depends on artifact size)
-- Elastic bands
-- Slab of Ethofoam (polyethylene foam)
-- Silica gel packets
+- Around 1/2 m² of either non-acidic 4-ply corrugated cardboard or polyethylene/polypropylene (amount depends on artifact size)
+- Elastic bands or paracord
+- Sponges (4-10, depending on artifact size)
+- Silica gel packets (5-15)
+- Humidity indicator strips
 - Micro:bit V2
 - Batteries or power bank
+- Fire-resistant tape (for the Micro:bit)
 - Measuring tape
 - Pipe cutter or hacksaw
 - Knife
 - Ruler
 - Tape
 
-![Suspension system reference blueprint|397x506](suspension-blueprint.jpg)
+![Suspension system reference blueprint|397x506](assets/suspension-blueprint.jpg)
 
-*Suspension system reference blueprint*
+*Suspension system reference blueprint, Your own container will need its own measurements - see Step 3*
 
 ## Part 1: Building the Suspension System
 
 ### Step 1: Measure Your Outer Container
 
 1. **Determine the internal dimensions** of your outer container: length (L), width (W), and depth (D). Measure from inside wall to inside wall.
-2. **Decide where the pipes will sit.** They can rest on the rim (if the container has a lip) or on brackets mounted inside. For a typical suspension, pipes are placed across the top opening, but [...]
-3. **Consider the height** at which you want the inner container to hang. The elastic bands will attach from the pipes to the inner container, so the pipes need to sit above the inner container's [...]
+2. **Decide where the pipes will sit.** They can rest on the rim (if the container has a lip) or on brackets mounted inside. For a typical suspension, pipes are placed across the top opening, but they can also be positioned lower using supports.
+3. **Consider the height** at which you want the inner container to hang. The elastic bands will attach from the pipes to the inner container, so the pipes need to sit above the inner container's attachment points.
 
 ### Step 2: Plan the Pipe Layout
 
-The reference blueprint uses a "cross-over formation," shown with red and green lines. This means two sets of pipes intersecting, like a grid or an X pattern. You can choose any pattern that provi[...]
+The reference blueprint uses a "cross-over formation," shown with red and green lines. This means two sets of pipes intersecting, like a grid or an X pattern. You can choose any pattern that provides multiple attachment points for the elastic bands. Common layouts include:
 
 - **Parallel grid:** several pipes running lengthwise and several crosswise, forming a lattice.
 - **Diagonal cross:** two or more pipes placed diagonally across the container, crossing at the centre.
 - **Radial:** pipes radiating out from the centre.
 
-For a simple and effective suspension, use two sets of parallel pipes — one set along the length and one along the width — so they intersect and form a grid. The number of pipes depends on the[...]
+For a simple and effective suspension, use two sets of parallel pipes — one set along the length and one along the width — so they intersect and form a grid. The number of pipes depends on the size of your container and the load; for example, you might use 3 pipes lengthwise and 3 crosswise.
 
 ### Step 3: Calculate Pipe Lengths
 
-For each pipe, measure the distance between the points where it will rest. If a pipe rests on the rim, its length equals the internal dimension (L or W) plus any overhang if it sits on ledges. For[...]
+For each pipe, measure the distance between the points where it will rest. If a pipe rests on the rim, its length equals the internal dimension (L or W) plus any overhang if it sits on ledges. For diagonal pipes, use the Pythagorean theorem: diagonal = √(L² + W²). Make sure each pipe is long enough to span the gap, with a little extra if it needs to sit on supports.
 
-The reference blueprint uses these specific lengths: 634, 270, 871, 546, 502, 436, and 228 mm, which correspond to different pipes in that particular design. For your own container, you will calcu[...]
+> **From the reference blueprint:** That build uses seven pipe lengths: 634, 270, 871, 546, 502, 436, and 228 mm, each cut for a different pipe in that particular design. For your own container, calculate your own numbers using the method above — they will differ from these.
 
 ### Step 4: Cut the PVC Pipes
 
@@ -54,14 +56,16 @@ The reference blueprint uses these specific lengths: 634, 270, 871, 546, 502, 43
 
 ### Step 5: Arrange the Pipes Inside the Container
 
-1. Place the cut pipes inside the container according to your planned layout. They should rest securely on the rim or supports. If the container has a smooth rim, add adhesive felt pads to prevent[...]
-2. Make sure the pipes are level and spaced evenly. For a grid layout, lay the first set (e.g. lengthwise) and then the second set (crosswise) on top of them to create an intersection. The pipes c[...]
+1. Place the cut pipes inside the container according to your planned layout. They should rest securely on the rim or supports. If the container has a smooth rim, add adhesive felt pads to prevent slipping.
+2. Make sure the pipes are level and spaced evenly. For a grid layout, lay the first set (e.g. lengthwise) and then the second set (crosswise) on top of them to create an intersection. The pipes can simply rest on each other; they don't need to be fastened unless the load will shift them.
 
 ### Step 6: Attach Elastic Bands to Suspend the Inner Container
 
 1. **Attach one end of each band** to a pipe. Loop the band around the pipe and tie it, or use a hook if the band has one. Make sure the band is secure and won't slip.
-2. **Attach the other end** to the inner container. Repeat for all bands, distributing them evenly around the container. The number of bands you need depends on the weight — more bands provide m[...]
+2. **Attach the other end** to the inner container. Repeat for all bands, distributing them evenly around the container. The number of bands you need depends on the weight — more bands provide more support.
 3. **Adjust the tension** so the inner container is suspended without touching the bottom or sides of the outer container. You may need to adjust band lengths or positions to get this right.
+
+> **Weight rating:** Standard elastic bands suit lighter artifacts. For heavier pieces, swap in paracord: our tests showed a paracord suspension safely supports artifacts up to 7 pounds (3 kg).
 
 ## Part 2: Building the Inner Container
 
@@ -75,7 +79,7 @@ The reference blueprint uses these specific lengths: 634, 270, 871, 546, 502, 43
 
 ### Step 2: Choose or Construct the Box
 
-1. **Choose standard boxes** if using standard cardboard boxes or polyethylene/polypropylene containers — select sizes that closely match the dimensions calculated in Step 1. It's better to choo[...]
+1. **Choose standard boxes** if using standard cardboard boxes or polyethylene/polypropylene containers — select sizes that closely match the dimensions calculated in Step 1. It's better to choose a box that's slightly too large than one that's too small.
 2. **Or construct a custom two-piece box,** consisting of a bottom and a separate lid:
    - Use a knife and a metal ruler to cut corrugated cardboard or plastic.
    - Place the ruler along the cutting line as a guide. Score the base first, then cut through all layers.
@@ -84,6 +88,22 @@ The reference blueprint uses these specific lengths: 634, 270, 871, 546, 502, 43
    - Tape the corners with normal tape, or preferably reinforced strapping tape.
    - Make a pattern or template before cutting to ensure accuracy.
 
+### Step 3: Make the Lid
+
+1. Place the bottom of the box on a sheet of cardboard or plastic and trace its outline.
+2. Add two inches on each side to form the lip of the lid.
+3. Score along the fold lines to shape the lip.
+4. Tape the corners with tape or reinforced strapping tape.
+
+### Step 4: Add Sponge Cushioning, Silica Gel, and Humidity Indicators
+
+1. Cut the sponges into smaller pieces until they almost fill the inner container.
+2. Depending on the humidity of the surrounding environment, add between 5 and 15 silica gel packets and mix them in with the sponge pieces so they're scattered throughout the inner container.
+3. Tuck one or two humidity indicator strips in where you can see them without opening the box, so you can check moisture levels at a glance.
+4. Place the artifact in the centre of the inner container, so sponge cushioning surrounds it on all sides.
+
+> **Result:** The artifact sits centred in the box, cushioned by sponge on every side, with silica packets and a humidity indicator strip tracking moisture levels throughout transit.
+
 ## Part 3: Setting Up the Monitoring System
 
 All the code for the monitoring system is available in our [GitHub repository](https://github.com/SanetPienaar/Archivault_bluetooth).
@@ -91,7 +111,7 @@ All the code for the monitoring system is available in our [GitHub repository](h
 ### Step 1: Prepare the Hardware
 
 1. Use a Micro:bit V2 with a battery pack or USB power supply.
-2. Place the Micro:bit inside the artifact container, ideally mounted on the artifact or a cushioned platform, so it measures actual shock on the object rather than just the container.
+2. Wrap the Micro:bit in fire-resistant tape for extra protection, then place it inside the artifact container, ideally mounted on the artifact or a cushioned platform, so it measures actual shock on the object rather than just the container.
 3. If you want to track environmental conditions, make sure your Micro:bit has access to its light, temperature, and accelerometer sensors (the Micro:bit V2 has all of these built in).
 
 ### Step 2: Set Up the Micro:bit Code
