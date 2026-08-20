@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it."
+title: "Archivault Bluetooth"
+type: software
+authors:
+  - name: "Brickheads RollingStones Team"
+  - family-names: "Pienaar"
+    given-names: "Leon"
+license: MIT
+repository-code: "https://github.com/SanetPienaar/Archivault_bluetooth"
+url: "https://sanetpienaar.github.io/Archivault_bluetooth/"
+abstract: "A two page web dashboard pair that reads BBC micro:bit sensor data over Web Bluetooth and logs transport telemetry for fragile archaeological artifacts."
+keywords:
+  - "FIRST LEGO League"
+  - "UNEARTHED"
+  - "micro:bit"
+  - "Web Bluetooth"
+  - "archaeology"
+  - "conservation"
