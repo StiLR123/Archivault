@@ -5,12 +5,14 @@ type: project
 authors:
   - name: "Brickheads RollingStones Team"
   - family-names: "Pienaar"
-    given-names: "Leon", "Sanet"
+    given-names: "Leon"
+  - family-names: "Pienaar"
+    given-names: "Sanet"
   - family-names: "le Roux"
-    given-names: "Stiaan
-license: MIT
+    given-names: "Stiaan"
+license: "MIT"
 repository-code: "https://github.com/StiLR123/Archivault"
-abstract: "Instructions on building a suspension system and container that protects artifacts from mechanical damage during transport. Along with a monitoring system that logs transport telemetry for fragile archaeological artifacts, using sensors on a BBC micro:bit v2."
+abstract: "Instructions on building a suspension system and container that protects artifacts from mechanical damage during transport, along with a monitoring system that logs transport telemetry for analysis and safety."
 keywords:
   - "FIRST LEGO League"
   - "UNEARTHED"
