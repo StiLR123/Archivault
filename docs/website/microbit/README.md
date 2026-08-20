@@ -6,7 +6,7 @@ You must flash a micro:bit program that enables those services.
 
 ## Tooling
 
-Use the Microsoft MakeCode online application for micro:bit.
+Use the [Microsoft MakeCode online application](https://makecode.microbit.org) for micro:bit. 
 Create a new project.
 Open Extensions.
 Add the Bluetooth extension.
@@ -21,8 +21,8 @@ Enable the Bluetooth accelerometer service.
 Add a forever group.
 Show a simple animation.
 This helps you confirm the program is running.
-
-A reference screenshot is in `makecode_bluetooth_blocks.png`.
+ 
+**You can use the Javascript file: `Microbit_code.js` and paste it into Microsoft MakeCode.**
 
 ## Flashing and operation
 
