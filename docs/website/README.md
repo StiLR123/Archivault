@@ -3,65 +3,35 @@
 Here is a more detailed explanation of what the websites do and how to employ them:
 
 ## How the system works
-The driver dashboard connects to a BBC micro:bit over Web Bluetooth.
-It reads accelerometer and temperature telemetry.
-It calculates the live g force magnitude.
-It uploads telemetry and route points to Firebase Realtime Database.
-It shows a full screen warning when a curator defined safety limit is exceeded.
+* The driver dashboard connects to a BBC micro:bit over Web Bluetooth.
+* It reads accelerometer and temperature telemetry.
+* It calculates the live g force magnitude.
+* It sends telemetry directly to driver's device
+* It shows a full screen warning when a curator defined safety limit is exceeded.
+* It uploads telemetry and route points to a Firebase Realtime Database using the device's internet connection
 
-The curator dashboard watches the same database.
-It lists trips.
-It shows a live map trace with event markers.
-It plots shock and temperature over time.
-It sets the global safety limit that the driver dashboard enforces.
+* The curator dashboard watches the same database.
+* It lists trips.
+* It shows a live map trace with event markers.
+* It plots shock and temperature over time.
+* It sets the global safety limit that the driver dashboard enforces.
 
 ## System design
 
 Sensor node: BBC micro:bit broadcasting Bluetooth Low Energy services.
+
 Driver dashboard: `index.html` running on a phone or laptop in the vehicle.
+
 Curator dashboard: `curator.html` running in a control room or judge station.
+
 Data layer: Firebase Realtime Database storing trips, locations, shocks, and safety settings.
 
 ## BBC micro:bit program
 
-The driver dashboard reads the standard BBC micro:bit Bluetooth accelerometer service.
-The driver dashboard also reads the standard BBC micro:bit Bluetooth temperature service.
-You must flash a micro:bit program that enables those services.
+* The driver dashboard reads the standard BBC micro:bit Bluetooth accelerometer service.
+* The driver dashboard also reads the standard BBC micro:bit Bluetooth temperature service.
 
-### Tooling
-
-Use the Microsoft MakeCode online application for micro:bit.
-Create a new project.
-Open Extensions.
-Add the Bluetooth extension.
-
-### Required blocks
-
-Add these blocks in the on start group.
-Set Bluetooth transmit power to 7.
-Enable the Bluetooth temperature service.
-Enable the Bluetooth accelerometer service.
-
-Add a forever group.
-Show a simple animation.
-This helps you confirm the program is running.
-
-A reference screenshot is in `makecode_bluetooth_blocks.png`.
-
-### Flashing and operation
-
-Download the program to the micro:bit.
-Power the micro:bit with a battery pack during transport.
-Keep the micro:bit close to the protected object.
-Keep the micro:bit within Bluetooth range of the driver device.
-
-### Troubleshooting
-
-Web Bluetooth can only connect to one browser tab at a time.
-Close other tabs that might still hold a connection.
-If the device does not appear, reset the micro:bit and try again.
-If the connection is unstable, reduce distance and remove metal shielding.
-The full source code is in `microbit/microbit-bluetooth.js`.
+**You must flash a micro:bit program that enables those services.**
 
 ## Driver dashboard workflow
 
@@ -73,7 +43,8 @@ The full source code is in `microbit/microbit-bluetooth.js`.
 
 Upload timing.
 
-Shock samples upload every one second.
+Shock & temperature samples upload every one second.
+
 Location samples upload every five seconds.
 
 ## Curator dashboard workflow
