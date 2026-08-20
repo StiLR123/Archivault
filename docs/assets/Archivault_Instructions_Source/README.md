@@ -27,7 +27,7 @@ double-click it, no software needed. Open it in any text/code editor
   free, open-license fonts), so nothing needs installing locally as long as
   you have an internet connection when you open/print the file.
 
-## Exporting to PDF (free options)
+## Exporting to PDF
 
 **Easiest — your browser's built-in "Print to PDF":**
 1. Open `ArchiVault_Building_Instructions.html` in Chrome or Edge.
@@ -36,20 +36,6 @@ double-click it, no software needed. Open it in any text/code editor
    headers/footers option (they'd otherwise add a plain URL/date footer
    on top of the designed one).
 4. Save.
-
-This reproduces the cover, colors, icons, and page breaks between Part
-1/2/3 essentially exactly.
-
-**One thing it won't reproduce automatically:** the slim repeating
-colored bar + page number at the very top/bottom of every content page in
-the PDF I gave you. Browsers don't support custom repeating headers out of
-the box. Two ways to get that back:
-- Send me your edited HTML and I'll re-run the same finishing step to add
-  it back in.
-- Or use **[Paged.js](https://pagedjs.org)** (free, open-source) — a
-  script built specifically for this kind of repeating-header/footer,
-  multi-page HTML-to-print layout. I haven't tested this exact file
-  against it, so treat it as a starting point rather than a guarantee.
 
 ## Editing the PDF directly instead
 
