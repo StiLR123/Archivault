@@ -6,6 +6,11 @@ It was designed for the 2025 to 2026 FIRST LEGO League Challenge UNEARTHED seaso
 *This project was built with Team Brickheads RollingStones from Pretoria, South Africa. 
 Brickheads is a community robotics club established in 2022.*
 
+TODO: 
+  - Update README and add all relevant information
+    
+  - Release Pages with index and curator sites
+
 ## Safety and privacy
 
 This tool logs location and timestamps.
