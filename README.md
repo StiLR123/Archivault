@@ -1,6 +1,6 @@
 # Archivault
 
-The **Archivault** is an open-source monitoring and suspension system that allows safer transportation of artifacts whilst still remaining affordable for archeologists
+The **Archivault** is an open-source monitoring and suspension system that allows safer transportation of artifacts whilst still remaining affordable. Whilst primarily targeted towards archeologists, anyone in need of a cost-effective way of transporting fragile goods can us it.
 It was designed for the 2025 to 2026 FIRST LEGO League Challenge UNEARTHED season.
 
 *This project was built with Team Brickheads RollingStones from Pretoria, South Africa. 
@@ -20,6 +20,7 @@ Mentor and code support: Leon Pienaar.
 
 Mentor and lead coach: [Sanet Pienaar](https://github.com/SanetPienaar)
 
+Original repo/monitoring system code: *Pienaar, L. et al. Archivault Bluetooth [Computer software]. https://github.com/SanetPienaar/Archivault_bluetooth*
 ## AI Disclosure
 
 Generative AI was used in the some of the HTML code along with aiding in formatting the building instructions.
