@@ -117,6 +117,7 @@
         let lastTimestamp = null;
         let currentTripName = null;
         let currentSafetyLimit = 1.5;
+        let tripsLoaded = false;
 
         const selectionScreen = document.getElementById('selectionScreen');
         const dashboardScreen = document.getElementById('dashboardScreen');
@@ -136,10 +137,14 @@
         }
 
         function loadScriptOnce(src, globalName) {
-            if (window[globalName]) return Promise.resolve();
+            if (globalName && window[globalName]) return Promise.resolve();
             return new Promise((resolve, reject) => {
                 const existing = document.querySelector(`script[data-src="${src}"]`);
                 if (existing) {
+                    if (existing.dataset.loaded === 'true') {
+                        resolve();
+                        return;
+                    }
                     existing.addEventListener('load', resolve, { once: true });
                     existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
                     return;
@@ -149,28 +154,38 @@
                 script.src = src;
                 script.async = true;
                 script.dataset.src = src;
-                script.onload = resolve;
+                script.onload = () => {
+                    script.dataset.loaded = 'true';
+                    resolve();
+                };
                 script.onerror = () => reject(new Error(`Failed to load ${src}`));
                 document.head.appendChild(script);
+            });
+        }
+
+        function loadStylesheetOnce(href) {
+            const existing = document.querySelector(`link[data-href="${href}"]`);
+            if (existing) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                link.dataset.href = href;
+                link.onload = resolve;
+                link.onerror = () => reject(new Error(`Failed to load ${href}`));
+                document.head.appendChild(link);
             });
         }
 
         async function ensureVisualizationLibraries() {
             if (!visualizationLoadPromise) {
                 visualizationLoadPromise = (async () => {
-                    if (!document.getElementById('leaflet-css')) {
-                        const css = document.createElement('link');
-                        css.id = 'leaflet-css';
-                        css.rel = 'stylesheet';
-                        css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-                        document.head.appendChild(css);
-                    }
-
                     await Promise.all([
+                        loadStylesheetOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'),
                         loadScriptOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'L'),
                         loadScriptOnce('https://cdn.jsdelivr.net/npm/chart.js', 'Chart')
                     ]);
-                    await loadScriptOnce('https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns', 'dateFns');
+                    await loadScriptOnce('https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns');
                 })();
             }
             return visualizationLoadPromise;
@@ -210,20 +225,23 @@
 
         const tripsRef = db.ref('trips');
         tripsRef.on('child_added', (snapshot) => {
-            const existing = tripList.querySelector(`[data-trip-name="${CSS.escape(snapshot.key)}"]`);
+            if (!tripsLoaded) {
+                tripList.replaceChildren();
+                tripsLoaded = true;
+            }
+            const existing = Array.from(tripList.children).find(child => child.dataset.tripName === snapshot.key);
             if (existing) existing.remove();
             tripList.appendChild(createTripCard(snapshot.key));
-            if (tripList.textContent === 'Loading trips...') tripList.textContent = '';
         });
 
         tripsRef.on('child_removed', (snapshot) => {
-            const card = tripList.querySelector(`[data-trip-name="${CSS.escape(snapshot.key)}"]`);
+            const card = Array.from(tripList.children).find(child => child.dataset.tripName === snapshot.key);
             if (card) card.remove();
             if (!tripList.children.length) tripList.textContent = 'No trips found.';
         });
 
         tripsRef.on('child_changed', (snapshot) => {
-            const card = tripList.querySelector(`[data-trip-name="${CSS.escape(snapshot.key)}"]`);
+            const card = Array.from(tripList.children).find(child => child.dataset.tripName === snapshot.key);
             if (!card) tripList.appendChild(createTripCard(snapshot.key));
         });
 
@@ -539,7 +557,11 @@
         function parseImportedRows(rows) {
             const imported = {};
             for (const row of rows) {
-                const tripName = parseTripName(row.Trip ?? row.trip);
+                const rawTrip = row.Trip ?? row.trip;
+                const hasLocationData = row.lat != null || row.lng != null || row.t != null;
+                if (rawTrip == null || !hasLocationData) continue;
+
+                const tripName = parseTripName(rawTrip);
                 if (!tripName) continue;
                 imported[tripName] ??= {};
 
@@ -572,10 +594,20 @@
                 await ensureXlsLibrary();
                 const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
                 const locationSheet = workbook.Sheets.Locations || workbook.Sheets[workbook.SheetNames[0]];
-                if (!locationSheet) throw new Error('No worksheet found.');
+                const tripSheet = workbook.Sheets.Trips;
+                if (!locationSheet && !tripSheet) throw new Error('No worksheet found.');
 
-                const locations = XLSX.utils.sheet_to_json(locationSheet, { defval: null });
-                const imported = parseImportedRows(locations);
+                const locationRows = locationSheet ? XLSX.utils.sheet_to_json(locationSheet, { defval: null }) : [];
+                const imported = parseImportedRows(locationRows);
+
+                if (tripSheet) {
+                    const tripRows = XLSX.utils.sheet_to_json(tripSheet, { defval: null });
+                    for (const row of tripRows) {
+                        const tripName = parseTripName(row.Trip ?? row.trip);
+                        if (tripName) imported[tripName] ??= {};
+                    }
+                }
+
                 const tripNames = Object.keys(imported);
                 if (!tripNames.length) throw new Error('No valid trip data found.');
 
