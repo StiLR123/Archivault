@@ -1,38 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Archivault - Curator Dashboard v5</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archivault - Curator Dashboard v6</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; height: 100vh; overflow: hidden; }
-        
-        /* Layout */
         #selectionScreen { padding: 40px; text-align: center; }
-        #dashboardScreen { display: none; height: 100vh; display: flex; flex-direction: column; }
-        
+        #dashboardScreen { display: none; height: 100vh; flex-direction: column; }
+
+        .data-controls { display: flex; justify-content: center; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        .data-status { min-height: 1.2em; color: #94a3b8; margin-bottom: 15px; }
+        .action-button { background: #334155; color: white; border: none; padding: 9px 14px; border-radius: 8px; }
+        .action-button:hover { background: #475569; }
+        .action-button:disabled { opacity: 0.5; cursor: wait; }
+
         .viz-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
         #map { flex: 3; width: 100%; background: #000; border-bottom: 1px solid #334155; }
-        .chart-panel { flex: 2; background: #1e293b; padding: 10px; position: relative; display: flex; flex-direction: column; }
-        .chart-wrapper { flex-grow: 1; position: relative; width: 100%; }
+        .chart-panel { flex: 2; min-height: 0; background: #1e293b; padding: 10px; position: relative; display: flex; flex-direction: column; }
+        .chart-wrapper { flex-grow: 1; min-height: 0; position: relative; width: 100%; }
 
-        /* Controls & Headers */
-        header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #22d3ee; height: 50px; }
+        header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; gap: 15px; align-items: center; border-bottom: 2px solid #22d3ee; min-height: 50px; box-sizing: border-box; }
         .chart-controls { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9em; color: #94a3b8; }
         .stats-panel { background: #0f172a; padding: 10px 20px; display: flex; gap: 20px; border-top: 1px solid #334155; height: 30px; align-items: center; font-size: 0.9em; }
 
-        /* Interactive Elements */
-        .trip-card { background: #1e293b; padding: 20px; border-radius: 12px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; border: 1px solid #334155; cursor: pointer; }
+        .trip-card { background: #1e293b; padding: 20px; border-radius: 12px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #334155; cursor: pointer; }
         .trip-card:hover { border-color: #22d3ee; }
+        .trip-card button { color: #ef4444; background: none; border: none; font-size: 1.1em; }
         select { background: #334155; color: white; border: none; padding: 5px; border-radius: 4px; }
         button { cursor: pointer; }
+        input[type="range"] { vertical-align: middle; }
+
+        @media (max-width: 800px) {
+            header { flex-wrap: wrap; height: auto; }
+            .stats-panel { overflow-x: auto; white-space: nowrap; }
+        }
     </style>
 </head>
 <body>
@@ -40,26 +45,34 @@
     <div id="selectionScreen">
         <h1 style="color:#22d3ee;">Archivault Logistics</h1>
         <h3>Select a Trip</h3>
+
+        <div class="data-controls">
+            <button class="action-button" id="importXlsButton" type="button">Import XLS</button>
+            <button class="action-button" id="exportXlsButton" type="button">Export All XLS</button>
+            <input id="importXlsInput" type="file" accept=".xls,application/vnd.ms-excel" hidden>
+        </div>
+        <div id="dataStatus" class="data-status" aria-live="polite"></div>
         <div id="tripList">Loading trips...</div>
     </div>
 
     <div id="dashboardScreen">
         <header>
-            <button onclick="location.reload()" style="background:#334155; color:white; border:none; padding:8px 15px; border-radius:8px;">← Back</button>
+            <button class="action-button" id="backButton" type="button">← Back</button>
             <h2 id="activeTripTitle" style="margin:0; font-size:1.2em;">Trip Name</h2>
-            <div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="action-button" id="exportTripXlsButton" type="button">Export XLS</button>
                 <span style="font-size:0.8em; color:#94a3b8;">SAFETY LIMIT</span>
-                <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5"> 
+                <input type="range" id="safetySlider" min="0.5" max="5.0" step="0.1" value="1.5">
                 <span id="limitDisp" style="color:#ef4444; font-weight:bold;">1.50G</span>
             </div>
         </header>
-        
+
         <div class="viz-container">
             <div id="map"></div>
             <div class="chart-panel">
                 <div class="chart-controls">
                     <span>Live Telemetry (Shock & Temp)</span>
-                    <select id="timeWindowSelector" onchange="updateTimeWindow()">
+                    <select id="timeWindowSelector">
                         <option value="1">Last 1 Min</option>
                         <option value="5" selected>Last 5 Mins</option>
                         <option value="0">Full Trip</option>
@@ -79,102 +92,219 @@
     </div>
 
     <script>
-        // --- FIREBASE INIT ---
         const firebaseConfig = {
             apiKey: "AIzaSyCLiWeNn7SVAs0VDpv8ST6xvplqGytnnIU",
             authDomain: "archivault-8d6ff.firebaseapp.com",
             databaseURL: "https://archivault-8d6ff-default-rtdb.firebaseio.com/",
             projectId: "archivault-8d6ff"
         };
+
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- GLOBAL STATE ---
-        let map, driverMarker, breadcrumbGroup;
-        let chartInstance;
-        let shockData = []; 
+        let map = null;
+        let driverMarker = null;
+        let breadcrumbLine = null;
+        let violationGroup = null;
+        let chartInstance = null;
+        let locationsRef = null;
+        let locationHandler = null;
+        let chartTimer = null;
+        let visualizationLoadPromise = null;
+        let xlsLoadPromise = null;
+        let shockData = [];
         let tempData = [];
+        let lastTimestamp = null;
+        let currentTripName = null;
         let currentSafetyLimit = 1.5;
+        let tripsLoaded = false;
 
-        // --- TRIP LIST LOGIC ---
-        db.ref('trips').on('value', (snapshot) => {
-            const list = document.getElementById('tripList');
-            list.innerHTML = "";
-            snapshot.forEach((child) => {
-                const div = document.createElement('div');
-                div.className = "trip-card";
-                div.innerHTML = `<span>🚛 ${child.key}</span>
-                                 <button style="color:#ef4444; background:none; border:none;" onclick="deleteTrip('${child.key}')">✕</button>`;
-                div.onclick = (e) => { if(e.target.tagName !== 'BUTTON') startMonitoring(child.key) };
-                list.appendChild(div);
+        const selectionScreen = document.getElementById('selectionScreen');
+        const dashboardScreen = document.getElementById('dashboardScreen');
+        const tripList = document.getElementById('tripList');
+        const dataStatus = document.getElementById('dataStatus');
+        const importXlsButton = document.getElementById('importXlsButton');
+        const exportXlsButton = document.getElementById('exportXlsButton');
+        const importXlsInput = document.getElementById('importXlsInput');
+        const exportTripXlsButton = document.getElementById('exportTripXlsButton');
+        const backButton = document.getElementById('backButton');
+        const safetySlider = document.getElementById('safetySlider');
+        const timeWindowSelector = document.getElementById('timeWindowSelector');
+
+        function setDataStatus(message, isError = false) {
+            dataStatus.textContent = message;
+            dataStatus.style.color = isError ? '#f87171' : '#94a3b8';
+        }
+
+        function loadScriptOnce(src, globalName) {
+            if (globalName && window[globalName]) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const existing = document.querySelector(`script[data-src="${src}"]`);
+                if (existing) {
+                    if (existing.dataset.loaded === 'true') {
+                        resolve();
+                        return;
+                    }
+                    existing.addEventListener('load', resolve, { once: true });
+                    existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.dataset.src = src;
+                script.onload = () => {
+                    script.dataset.loaded = 'true';
+                    resolve();
+                };
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
             });
+        }
+
+        function loadStylesheetOnce(href) {
+            const existing = document.querySelector(`link[data-href="${href}"]`);
+            if (existing) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                link.dataset.href = href;
+                link.onload = resolve;
+                link.onerror = () => reject(new Error(`Failed to load ${href}`));
+                document.head.appendChild(link);
+            });
+        }
+
+        async function ensureVisualizationLibraries() {
+            if (!visualizationLoadPromise) {
+                visualizationLoadPromise = (async () => {
+                    await Promise.all([
+                        loadStylesheetOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'),
+                        loadScriptOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'L'),
+                        loadScriptOnce('https://cdn.jsdelivr.net/npm/chart.js', 'Chart')
+                    ]);
+                    await loadScriptOnce('https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns');
+                })();
+            }
+            return visualizationLoadPromise;
+        }
+
+        async function ensureXlsLibrary() {
+            if (!xlsLoadPromise) {
+                xlsLoadPromise = loadScriptOnce(
+                    'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
+                    'XLSX'
+                );
+            }
+            return xlsLoadPromise;
+        }
+
+        function createTripCard(name) {
+            const div = document.createElement('div');
+            div.className = 'trip-card';
+            div.dataset.tripName = name;
+
+            const title = document.createElement('span');
+            title.textContent = `🚛 ${name}`;
+
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.textContent = '✕';
+            deleteButton.title = `Delete ${name}`;
+            deleteButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                deleteTrip(name);
+            });
+
+            div.append(title, deleteButton);
+            div.addEventListener('click', () => startMonitoring(name));
+            return div;
+        }
+
+        const tripsRef = db.ref('trips');
+        tripsRef.on('child_added', (snapshot) => {
+            if (!tripsLoaded) {
+                tripList.replaceChildren();
+                tripsLoaded = true;
+            }
+            const existing = Array.from(tripList.children).find(child => child.dataset.tripName === snapshot.key);
+            if (existing) existing.remove();
+            tripList.appendChild(createTripCard(snapshot.key));
+        });
+
+        tripsRef.on('child_removed', (snapshot) => {
+            const card = Array.from(tripList.children).find(child => child.dataset.tripName === snapshot.key);
+            if (card) card.remove();
+            if (!tripList.children.length) tripList.textContent = 'No trips found.';
+        });
+
+        tripsRef.on('child_changed', (snapshot) => {
+            const card = Array.from(tripList.children).find(child => child.dataset.tripName === snapshot.key);
+            if (!card) tripList.appendChild(createTripCard(snapshot.key));
         });
 
         function deleteTrip(name) {
-            if(confirm("Delete " + name + "?")) db.ref('trips/' + name).remove();
+            if (confirm(`Delete ${name}?`)) db.ref(`trips/${name}`).remove();
         }
 
-        // --- MONITORING LOGIC ---
-        function startMonitoring(tripName) {
-            document.getElementById('selectionScreen').style.display = "none";
-            document.getElementById('dashboardScreen').style.display = "flex";
-            document.getElementById('activeTripTitle').innerText = tripName;
+        function detachLocationListener() {
+            if (locationsRef && locationHandler) locationsRef.off('child_added', locationHandler);
+            locationsRef = null;
+            locationHandler = null;
+        }
 
-            // 1. MAP SETUP
-            if(map) map.remove();
-            map = L.map('map').setView([0, 0], 2);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            breadcrumbGroup = L.layerGroup().addTo(map);
-            driverMarker = L.marker([0,0]).addTo(map).bindPopup("Driver Location");
-
-            // 2. CHART SETUP
+        function resetTelemetryState() {
             shockData = [];
             tempData = [];
-            initChart();
-
-            // 3. LISTENERS - UPDATED to match your Screenshot
-            // Everything is inside 'locations' (lat, lng, maxG, temp, t)
-            
-            db.ref(`trips/${tripName}/locations`).on('child_added', (snap) => {
-                const data = snap.val();
-                
-                // --- MAP UPDATES ---
-                const pos = [data.lat, data.lng];
-                driverMarker.setLatLng(pos);
-                map.panTo(pos);
-                
-                const color = data.isViolation ? "#ef4444" : "#22d3ee";
-                L.circleMarker(pos, { radius: 4, color: color, fillOpacity: 0.8 }).addTo(breadcrumbGroup);
-                document.getElementById('breadCount').innerText = breadcrumbGroup.getLayers().length;
-
-                // --- DATA PARSING ---
-                // Parse Shock (Handle string "1.06" or number)
-                const shockVal = parseFloat(data.maxG); 
-                // Parse Temp (Handle undefined case just to be safe)
-                const tempVal = data.temp !== undefined ? parseFloat(data.temp) : null;
-                const timestamp = data.t;
-
-                // --- GRAPH UPDATES ---
-                if (!isNaN(shockVal)) {
-                    shockData.push({ x: timestamp, y: shockVal });
-                    document.getElementById('curG').innerText = shockVal.toFixed(2) + "G";
-                }
-                
-                if (tempVal !== null && !isNaN(tempVal)) {
-                    tempData.push({ x: timestamp, y: tempVal });
-                    document.getElementById('curTemp').innerText = tempVal.toFixed(1) + "°C";
-                }
-
-                updateChart();
-            });
+            lastTimestamp = null;
+            document.getElementById('curG').textContent = '0.0G';
+            document.getElementById('curTemp').textContent = '0°C';
+            document.getElementById('breadCount').textContent = '0';
         }
 
-        // --- ADVANCED CHART LOGIC ---
-        function initChart() {
-            const ctx = document.getElementById('telemetryChart').getContext('2d');
-            if(chartInstance) chartInstance.destroy();
+        async function startMonitoring(tripName) {
+            currentTripName = tripName;
+            selectionScreen.style.display = 'none';
+            dashboardScreen.style.display = 'flex';
+            document.getElementById('activeTripTitle').textContent = tripName;
+            setDataStatus('');
 
-            chartInstance = new Chart(ctx, {
+            detachLocationListener();
+            resetTelemetryState();
+
+            try {
+                await ensureVisualizationLibraries();
+                setupMap();
+                initChart();
+
+                locationsRef = db.ref(`trips/${tripName}/locations`);
+                locationHandler = handleLocationAdded;
+                locationsRef.on('child_added', locationHandler);
+            } catch (error) {
+                console.error(error);
+                alert(`Unable to load the dashboard: ${error.message}`);
+                showSelectionScreen();
+            }
+        }
+
+        function setupMap() {
+            if (map) map.remove();
+            map = L.map('map', { preferCanvas: true }).setView([0, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            breadcrumbLine = L.polyline([], { weight: 3, color: '#22d3ee' }).addTo(map);
+            violationGroup = L.layerGroup().addTo(map);
+            driverMarker = L.marker([0, 0]).addTo(map).bindPopup('Driver Location');
+        }
+
+        function initChart() {
+            const canvas = document.getElementById('telemetryChart');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     datasets: [
@@ -183,43 +313,24 @@
                             data: shockData,
                             yAxisID: 'yShock',
                             borderWidth: 2,
-                            tension: 0.4,
+                            tension: 0.25,
+                            pointRadius: 0,
+                            pointBackgroundColor: '#fff',
                             segment: {
-                                borderColor: ctx => {
-                                    // Turn RED if over limit
-                                    return ctx.p0.parsed.y > currentSafetyLimit || ctx.p1.parsed.y > currentSafetyLimit ? '#ef4444' : '#4ade80';
-                                }
+                                borderColor: context => context.p0.parsed.y > currentSafetyLimit || context.p1.parsed.y > currentSafetyLimit ? '#ef4444' : '#4ade80'
                             },
-                            pointRadius: (ctx) => {
-                                const index = ctx.dataIndex;
-                                const count = ctx.dataset.data.length;
-                                return index === count - 1 ? 6 : 0; // Show only the latest dot
-                            },
-                            pointBackgroundColor: '#fff'
+                            pointRadius: context => context.dataIndex === context.dataset.data.length - 1 ? 6 : 0
                         },
                         {
                             label: 'Temp (°C)',
                             data: tempData,
                             yAxisID: 'yTemp',
                             borderWidth: 2,
-                            tension: 0.4,
-                            // Gradient: Blue (Cold) -> Yellow -> Red (Hot)
-                            borderColor: function(context) {
-                                const chart = context.chart;
-                                const {ctx, chartArea} = chart;
-                                if (!chartArea) return;
-                                const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                gradient.addColorStop(0, '#3b82f6'); 
-                                gradient.addColorStop(0.5, '#facc15'); 
-                                gradient.addColorStop(1, '#ef4444'); 
-                                return gradient;
-                            },
-                            pointRadius: (ctx) => {
-                                const index = ctx.dataIndex;
-                                const count = ctx.dataset.data.length;
-                                return index === count - 1 ? 6 : 0; // Show only the latest dot
-                            },
-                            pointBackgroundColor: '#fff'
+                            tension: 0.25,
+                            pointRadius: 0,
+                            pointBackgroundColor: '#fff',
+                            borderColor: '#facc15',
+                            pointRadius: context => context.dataIndex === context.dataset.data.length - 1 ? 6 : 0
                         }
                     ]
                 },
@@ -227,13 +338,15 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: false,
+                    normalized: true,
+                    parsing: false,
                     interaction: { mode: 'index', intersect: false },
                     scales: {
                         x: {
                             type: 'time',
                             time: { unit: 'minute', displayFormats: { minute: 'HH:mm:ss' } },
                             grid: { color: '#334155' },
-                            ticks: { color: '#94a3b8' }
+                            ticks: { color: '#94a3b8', maxRotation: 0 }
                         },
                         yShock: {
                             type: 'linear',
@@ -258,44 +371,289 @@
                 }
             });
 
-            // Keep time window moving
-            setInterval(() => {
-                if(document.getElementById('dashboardScreen').style.display === 'flex') updateTimeWindow();
-            }, 1000);
-        }
-
-        function updateChart() {
-            if(chartInstance) {
-                chartInstance.data.datasets[0].data = shockData;
-                chartInstance.data.datasets[1].data = tempData;
-                updateTimeWindow();
-                chartInstance.update('none');
+            if (!chartTimer) {
+                chartTimer = setInterval(() => {
+                    if (dashboardScreen.style.display === 'flex' && chartInstance && lastTimestamp !== null) {
+                        updateTimeWindow(false);
+                    }
+                }, 1000);
             }
         }
 
-        function updateTimeWindow() {
-            if(!chartInstance) return;
-            const minutes = parseInt(document.getElementById('timeWindowSelector').value);
-            const now = Date.now();
-            
+        function parseTimestamp(value) {
+            if (value instanceof Date) return value.getTime();
+            if (typeof value === 'number' && Number.isFinite(value)) return value;
+            if (typeof value === 'string') {
+                const numeric = Number(value);
+                if (Number.isFinite(numeric)) return numeric;
+                const parsed = Date.parse(value);
+                return Number.isNaN(parsed) ? null : parsed;
+            }
+            return null;
+        }
+
+        function handleLocationAdded(snapshot) {
+            const data = snapshot.val() || {};
+            const lat = Number(data.lat);
+            const lng = Number(data.lng);
+            const timestamp = parseTimestamp(data.t);
+
+            if (Number.isFinite(lat) && Number.isFinite(lng) && map) {
+                const pos = [lat, lng];
+                breadcrumbLine.addLatLng(pos);
+                driverMarker.setLatLng(pos);
+
+                if (!map.getBounds().pad(-0.35).contains(pos)) {
+                    map.panTo(pos, { animate: false });
+                }
+
+                if (data.isViolation) {
+                    L.circleMarker(pos, { radius: 5, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.85 }).addTo(violationGroup);
+                }
+            }
+
+            const eventCount = Number(document.getElementById('breadCount').textContent) + 1;
+            document.getElementById('breadCount').textContent = String(eventCount);
+
+            const shockVal = Number.parseFloat(data.maxG);
+            const tempVal = data.temp !== undefined && data.temp !== null ? Number.parseFloat(data.temp) : null;
+
+            if (timestamp !== null) {
+                lastTimestamp = Math.max(lastTimestamp ?? timestamp, timestamp);
+                if (Number.isFinite(shockVal)) {
+                    shockData.push({ x: timestamp, y: shockVal });
+                    document.getElementById('curG').textContent = `${shockVal.toFixed(2)}G`;
+                }
+                if (tempVal !== null && Number.isFinite(tempVal)) {
+                    tempData.push({ x: timestamp, y: tempVal });
+                    document.getElementById('curTemp').textContent = `${tempVal.toFixed(1)}°C`;
+                }
+            }
+
+            scheduleChartUpdate();
+        }
+
+        let chartUpdatePending = false;
+        function scheduleChartUpdate() {
+            if (chartUpdatePending) return;
+            chartUpdatePending = true;
+            requestAnimationFrame(() => {
+                chartUpdatePending = false;
+                if (!chartInstance) return;
+                updateTimeWindow(false);
+                chartInstance.update('none');
+            });
+        }
+
+        function updateTimeWindow(redraw = true) {
+            if (!chartInstance) return;
+            const minutes = Number.parseInt(timeWindowSelector.value, 10);
+            const end = lastTimestamp ?? Date.now();
+
             if (minutes === 0) {
                 delete chartInstance.options.scales.x.min;
                 delete chartInstance.options.scales.x.max;
             } else {
-                chartInstance.options.scales.x.min = now - (minutes * 60 * 1000);
-                chartInstance.options.scales.x.max = now;
+                chartInstance.options.scales.x.min = end - (minutes * 60 * 1000);
+                chartInstance.options.scales.x.max = end;
             }
-            chartInstance.update('none');
+
+            if (redraw) chartInstance.update('none');
         }
 
-        // --- SLIDER LOGIC ---
-        const slider = document.getElementById('safetySlider');
-        slider.oninput = function() {
-            currentSafetyLimit = parseFloat(this.value);
-            document.getElementById('limitDisp').innerText = currentSafetyLimit.toFixed(2) + "G";
-            db.ref('safety_settings/max_g').set(this.value);
-            if(chartInstance) chartInstance.update();
-        };
+        timeWindowSelector.addEventListener('change', () => updateTimeWindow(true));
+
+        safetySlider.addEventListener('input', () => {
+            currentSafetyLimit = Number.parseFloat(safetySlider.value);
+            document.getElementById('limitDisp').textContent = `${currentSafetyLimit.toFixed(2)}G`;
+        });
+
+        safetySlider.addEventListener('change', () => {
+            db.ref('safety_settings/max_g').set(safetySlider.value);
+            if (chartInstance) chartInstance.update('none');
+        });
+
+        async function fetchTripsForExport(tripName = null) {
+            const snapshot = tripName
+                ? await db.ref(`trips/${tripName}`).once('value')
+                : await db.ref('trips').once('value');
+            return tripName ? { [tripName]: snapshot.val() } : snapshot.val() || {};
+        }
+
+        function buildWorkbook(trips, XLSX) {
+            const tripRows = [];
+            const locationRows = [];
+
+            for (const [tripName, trip] of Object.entries(trips)) {
+                tripRows.push({ Trip: tripName });
+                const locations = trip && trip.locations ? trip.locations : {};
+                for (const [key, location] of Object.entries(locations)) {
+                    const row = location || {};
+                    locationRows.push({
+                        Trip: tripName,
+                        Key: key,
+                        lat: row.lat ?? '',
+                        lng: row.lng ?? '',
+                        maxG: row.maxG ?? '',
+                        temp: row.temp ?? '',
+                        t: row.t ?? '',
+                        isViolation: row.isViolation ? true : false
+                    });
+                }
+            }
+
+            const workbook = XLSX.utils.book_new();
+            const tripsSheet = XLSX.utils.json_to_sheet(tripRows.length ? tripRows : [{ Trip: '' }]);
+            const locationsSheet = XLSX.utils.json_to_sheet(locationRows.length ? locationRows : [{
+                Trip: '', Key: '', lat: '', lng: '', maxG: '', temp: '', t: '', isViolation: ''
+            }]);
+            tripsSheet['!cols'] = [{ wch: 32 }];
+            locationsSheet['!cols'] = [
+                { wch: 28 }, { wch: 24 }, { wch: 12 }, { wch: 12 },
+                { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 14 }
+            ];
+            XLSX.utils.book_append_sheet(workbook, tripsSheet, 'Trips');
+            XLSX.utils.book_append_sheet(workbook, locationsSheet, 'Locations');
+            return workbook;
+        }
+
+        async function exportXls(tripName = null) {
+            const button = tripName ? exportTripXlsButton : exportXlsButton;
+            button.disabled = true;
+            try {
+                setDataStatus('Preparing XLS export...');
+                await ensureXlsLibrary();
+                const trips = await fetchTripsForExport(tripName);
+                const workbook = buildWorkbook(trips, XLSX);
+                const suffix = tripName ? tripName.replace(/[^a-z0-9_-]+/gi, '_') : 'All_Trips';
+                XLSX.writeFile(workbook, `Archivault_${suffix}.xls`, { bookType: 'biff8' });
+                setDataStatus('XLS export complete.');
+            } catch (error) {
+                console.error(error);
+                setDataStatus(`Export failed: ${error.message}`, true);
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function validFirebaseKey(value) {
+            return typeof value === 'string' && value.length > 0 && value.length <= 768 && !/[.#$\[\]\/]/.test(value);
+        }
+
+        function parseBoolean(value) {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'number') return value !== 0;
+            if (typeof value === 'string') return ['true', 'yes', '1', 'violation'].includes(value.trim().toLowerCase());
+            return false;
+        }
+
+        function parseTripName(value) {
+            const name = String(value ?? '').trim();
+            if (!name) return null;
+            if (!validFirebaseKey(name)) throw new Error(`Invalid Firebase trip name: ${name}`);
+            return name;
+        }
+
+        function parseImportedRows(rows) {
+            const imported = {};
+            for (const row of rows) {
+                const rawTrip = row.Trip ?? row.trip;
+                const hasLocationData = row.lat != null || row.lng != null || row.t != null;
+                if (rawTrip == null || !hasLocationData) continue;
+
+                const tripName = parseTripName(rawTrip);
+                if (!tripName) continue;
+                imported[tripName] ??= {};
+
+                const key = String(row.Key ?? row.key ?? '').trim();
+                const location = {
+                    lat: row.lat === '' || row.lat == null ? null : Number(row.lat),
+                    lng: row.lng === '' || row.lng == null ? null : Number(row.lng),
+                    maxG: row.maxG === '' || row.maxG == null ? null : Number(row.maxG),
+                    temp: row.temp === '' || row.temp == null ? null : Number(row.temp),
+                    t: parseTimestamp(row.t),
+                    isViolation: parseBoolean(row.isViolation)
+                };
+
+                if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng) || location.t === null) {
+                    throw new Error(`Invalid location row in trip ${tripName}`);
+                }
+
+                const locationKey = validFirebaseKey(key) ? key : db.ref(`trips/${tripName}/locations`).push().key;
+                imported[tripName][locationKey] = location;
+            }
+            return imported;
+        }
+
+        async function importXls(file) {
+            if (!file) return;
+            importXlsButton.disabled = true;
+            exportXlsButton.disabled = true;
+            try {
+                setDataStatus('Reading XLS file...');
+                await ensureXlsLibrary();
+                const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+                const locationSheet = workbook.Sheets.Locations || workbook.Sheets[workbook.SheetNames[0]];
+                const tripSheet = workbook.Sheets.Trips;
+                if (!locationSheet && !tripSheet) throw new Error('No worksheet found.');
+
+                const locationRows = locationSheet ? XLSX.utils.sheet_to_json(locationSheet, { defval: null }) : [];
+                const imported = parseImportedRows(locationRows);
+
+                if (tripSheet) {
+                    const tripRows = XLSX.utils.sheet_to_json(tripSheet, { defval: null });
+                    for (const row of tripRows) {
+                        const tripName = parseTripName(row.Trip ?? row.trip);
+                        if (tripName) imported[tripName] ??= {};
+                    }
+                }
+
+                const tripNames = Object.keys(imported);
+                if (!tripNames.length) throw new Error('No valid trip data found.');
+
+                const summary = tripNames.join(', ');
+                if (!confirm(`Replace the imported trip data for: ${summary}?`)) {
+                    setDataStatus('Import canceled.');
+                    return;
+                }
+
+                const updates = {};
+                for (const [tripName, locationMap] of Object.entries(imported)) {
+                    updates[`trips/${tripName}`] = { locations: locationMap };
+                }
+                await db.ref().update(updates);
+                setDataStatus(`Imported ${tripNames.length} trip${tripNames.length === 1 ? '' : 's'} successfully.`);
+            } catch (error) {
+                console.error(error);
+                setDataStatus(`Import failed: ${error.message}`, true);
+            } finally {
+                importXlsInput.value = '';
+                importXlsButton.disabled = false;
+                exportXlsButton.disabled = false;
+            }
+        }
+
+        importXlsButton.addEventListener('click', () => importXlsInput.click());
+        importXlsInput.addEventListener('change', () => importXls(importXlsInput.files[0]));
+        exportXlsButton.addEventListener('click', () => exportXls());
+        exportTripXlsButton.addEventListener('click', () => exportXls(currentTripName));
+
+        function showSelectionScreen() {
+            detachLocationListener();
+            currentTripName = null;
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+            if (map) {
+                map.remove();
+                map = null;
+            }
+            dashboardScreen.style.display = 'none';
+            selectionScreen.style.display = 'block';
+        }
+
+        backButton.addEventListener('click', showSelectionScreen);
     </script>
 </body>
 </html>
